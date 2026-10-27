@@ -350,6 +350,26 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   we(yardTop, nearestOf(bankNodes, yardTop));
   we(yardTop, yard);
   we(yard, wheelFront);
+  // 往旗津：從摩天輪前繞過貨櫃場南邊到灣口的渡船頭，再搭小竹筏過海（island.html 會把 ferry 這段畫成搭船）
+  const southYard = wn(-0.4, 0.72, 9.6);
+  const southWest = wn(-6.2, 0.72, 9.8);
+  const dock = wn(-10.2, 0.72, 7.2);
+  we(wheelFront, southYard);
+  we(southYard, southWest);
+  we(southWest, dock);
+  // 旗津島上：渡船頭、西岸看夕陽的海灘、往燈塔的步道
+  const qijinDock = wn(QIJIN_X + 1.4, 0.72, 6);
+  const qijinMid = wn(QIJIN_X, 0.72, 2.5);
+  const sunsetBeach = wn(QIJIN_X - 1.4, 0.72, -1);
+  const qijinNorth = wn(QIJIN_X, 0.72, -4.5);
+  const lighthouseFoot = wn(QIJIN_X, 0.72, -8.4);
+  we(qijinDock, qijinMid);
+  we(qijinMid, sunsetBeach);
+  we(sunsetBeach, qijinNorth);
+  we(qijinNorth, lighthouseFoot);
+  walk.ferry = [[dock, qijinDock]];
+  walk.tags = {};
+  [qijinDock, qijinMid, sunsetBeach, qijinNorth, lighthouseFoot].forEach(i => { walk.tags[i] = "qijin"; });
   walk.gate = gateNode;
   // 步道兩側 1.2 以內不蓋大樓
   const segDist = (x, z, a, b) => {
@@ -717,9 +737,16 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   const wake = new THREE.Mesh(wakeGeo, wakeMat);
   wake.position.y = -0.15;
   ferry.add(wake);
+  // 放大到角色站得上去的大小；角色會站在頂層甲板上過海
+  ferry.scale.setScalar(1.5);
   island.add(ferry);
-  const FERRY_A = new THREE.Vector3(QIJIN_X + 2.3, 0, 6);
-  const FERRY_B = new THREE.Vector3(-12.5, 0, 6.6);
+  // A 是旗津那頭、B 是鼓山那頭；兩端各停靠 4 秒讓角色上下船，航行 10 秒
+  const FERRY_A = new THREE.Vector3(QIJIN_X + 3.9, 0, 6);
+  const FERRY_B = new THREE.Vector3(-13.4, 0, 6.6);
+  const FERRY_DOCK = 4;
+  const FERRY_SAIL = 10;
+  // 給 island.html 看：渡輪現在停在哪一頭（"A"／"B"，航行中是 null），以及船體本身（算甲板位置用）
+  const ferryRide = { dockedAt: null, boat: ferry };
 
   return {
     key: "kaohsiung",
@@ -730,6 +757,7 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
     focus: new THREE.Vector3(-4, 2, 0),
     viewScale: 1.3,
     walk,
+    ferryRide,
     onClick(target, { name }) {
       switch (target.userData.clickable) {
         case "sky85": return `${name} 抬頭看 85 大樓，兩隻腳在半空中合成一棟，像個「高」字。`;
@@ -787,18 +815,35 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
       });
       navMats.forEach(m => { m.emissiveIntensity = 0.2 + env.night * 2; });
 
-      // 渡輪來回
-      const lap = (t * 0.05) % 2;
-      const k = lap < 1 ? lap : 2 - lap;
-      const eased = k * k * (3 - 2 * k);
-      ferry.position.lerpVectors(FERRY_A, FERRY_B, eased);
+      // 渡輪來回：停靠鼓山 → 開往旗津 → 停靠旗津 → 開回鼓山
+      const cycle = t % (2 * (FERRY_DOCK + FERRY_SAIL));
+      const smooth = u => u * u * (3 - 2 * u);
+      let k;
+      let sail = 0; // 航行進度 0~1，停靠時是 0
+      let towardB = false;
+      if (cycle < FERRY_DOCK) {
+        k = 1;
+        ferryRide.dockedAt = "B";
+      } else if (cycle < FERRY_DOCK + FERRY_SAIL) {
+        sail = (cycle - FERRY_DOCK) / FERRY_SAIL;
+        k = 1 - smooth(sail);
+        ferryRide.dockedAt = null;
+      } else if (cycle < 2 * FERRY_DOCK + FERRY_SAIL) {
+        k = 0;
+        ferryRide.dockedAt = "A";
+      } else {
+        sail = (cycle - 2 * FERRY_DOCK - FERRY_SAIL) / FERRY_SAIL;
+        k = smooth(sail);
+        towardB = true;
+        ferryRide.dockedAt = null;
+      }
+      ferry.position.lerpVectors(FERRY_A, FERRY_B, k);
       ferry.position.y = -1.0 + Math.sin(t * 2) * 0.04;
       ferry.rotation.set(Math.sin(t * 1.6) * 0.02, -Math.atan2(FERRY_B.z - FERRY_A.z, FERRY_B.x - FERRY_A.x), Math.sin(t * 1.3) * 0.015);
-      // 雙頭船不迴轉：去程浪花在 -x 那頭，回程換到 +x 那頭；開得越快浪花越明顯
-      const going = lap < 1;
-      wake.position.x = going ? -1.25 : 1.25;
-      wake.rotation.y = going ? 0 : Math.PI;
-      wakeMat.opacity = 0.55 * 6 * k * (1 - k) / 1.5;
+      // 雙頭船不迴轉：往鼓山時浪花在 -x 那頭，往旗津時換到 +x 那頭；開得越快浪花越明顯
+      wake.position.x = towardB ? -1.25 : 1.25;
+      wake.rotation.y = towardB ? 0 : Math.PI;
+      wakeMat.opacity = 0.55 * Math.sin(sail * Math.PI);
       flag.rotation.y = Math.sin(t * 5) * 0.3;
 
       // 摩天輪轉動，車廂保持直立；晚上點燈

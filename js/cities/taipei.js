@@ -799,11 +799,36 @@ window.HeartCities.taipei = function buildTaipei(ctx) {
     const startNode = streetNodes[Math.floor(rand() * streetNodes.length)];
     rat.position.copy(walk.nodes[startNode]);
     island.add(rat);
-    rats.push({ rat, body, tail, from: startNode, to: startNode, prev: -1, along: 1, pause: rand() * 2, speed: 3.2 + rand() * 1.2, phase: rand() * 6 });
+    const hitbox = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 6), new THREE.MeshBasicMaterial({ visible: false }));
+    hitbox.position.y = 0.25;
+    rat.add(hitbox);
+    rats.push({ rat, body, tail, caught: 0, from: startNode, to: startNode, prev: -1, along: 1, pause: rand() * 2, speed: 3.2 + rand() * 1.2, phase: rand() * 6 });
   }
   // 走到路口就隨機挑一條（盡量不走回頭路），偶爾停下來東張西望
+  // 抓老鼠小遊戲用：被抓到的老鼠消失一下，再從隨機的路口冒出來；遊戲中老鼠跑更快
+  let ratFrenzy = 1;
+  const ratGame = {
+    catch(obj) {
+      const r = rats.find(x => x.rat === obj);
+      if (!r || r.caught > 0) return false;
+      r.caught = 1.2;
+      r.rat.visible = false;
+      return true;
+    },
+    setFrenzy(on) { ratFrenzy = on ? 1.8 : 1; },
+  };
   function updateRats(dt, t) {
     rats.forEach(r => {
+      if (r.caught > 0) {
+        r.caught -= dt;
+        if (r.caught <= 0) {
+          const n = streetNodes[Math.floor(Math.random() * streetNodes.length)];
+          Object.assign(r, { from: n, to: n, along: 1, pause: 0.3 });
+          r.rat.position.copy(walk.nodes[n]);
+          r.rat.visible = true;
+        }
+        return;
+      }
       if (r.pause > 0) {
         r.pause -= dt;
         r.body.position.y = 0;
@@ -822,7 +847,7 @@ window.HeartCities.taipei = function buildTaipei(ctx) {
       const a = walk.nodes[r.from];
       const b = walk.nodes[r.to];
       const len = Math.max(a.distanceTo(b), 0.001);
-      r.along = Math.min(1, r.along + (r.speed * dt) / len);
+      r.along = Math.min(1, r.along + (r.speed * ratFrenzy * dt) / len);
       // 靠路邊跑，不要跟走在路中間的角色撞在一起
       const dir = new THREE.Vector3().subVectors(b, a).normalize();
       const side = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.55);
@@ -842,6 +867,7 @@ window.HeartCities.taipei = function buildTaipei(ctx) {
     focus: new THREE.Vector3(0, 4, 0),
     viewScale: 1.35,
     walk,
+    ratGame,
     onClick(target, { name }) {
       switch (target.userData.clickable) {
         case "yangmingshan": return `${name} 爬上七星山，在小油坑聞到濃濃的硫磺味，還在擎天崗跟牛打了招呼。`;

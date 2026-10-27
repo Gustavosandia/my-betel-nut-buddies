@@ -126,6 +126,8 @@
       /* 詳細資訊：用 grid 列高 0fr ↔ 1fr 做平滑的展開動畫 */
       #card .card-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.3s ease; }
       #card .card-inner { overflow: hidden; min-height: 0; }
+      /* 內容太長（例如護照分頁）就在卡片裡捲動，卡片不會長到超出畫面 */
+      #card:not(.collapsed) .card-inner { max-height: calc(100vh - 330px); overflow-y: auto; }
       #card .home { margin-top: 4px; font-size: 13px; opacity: 0.65; }
       #card.collapsed .card-body { grid-template-rows: 0fr; }
       #card.collapsed .chev { transform: rotate(-90deg); }
@@ -142,6 +144,94 @@
       @keyframes cardPop { 0% { transform: scale(0.96); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
       #card .title { display: block; font-size: 16px; font-weight: 700; color: var(--role); }
       #card .motto { margin: 10px 0 14px; font-size: 14px; line-height: 1.6; }
+      /* 角色卡的分頁：角色資訊／護照・任務 */
+      .card-tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
+      .card-tabs button {
+        flex: 1;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .card-tabs button.on { background: var(--role); border-color: var(--role); color: #fff; }
+      .drunk-row { margin-top: 6px; font-size: 13px; }
+      #card .qbadge {
+        position: absolute;
+        top: 2px;
+        right: 36px;
+        flex-shrink: 0;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--line);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      #card.collapsed .qbadge { position: static; }
+      .stamp-city { margin: 10px 0 4px; font-size: 12px; font-weight: 700; opacity: 0.7; }
+      .stamps { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+      .stamp {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 4px;
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        font-size: 20px;
+        filter: grayscale(1);
+        opacity: 0.45;
+      }
+      .stamp small { font-size: 11px; line-height: 1.2; text-align: center; }
+      .stamp.on { filter: none; opacity: 1; border: 2px solid var(--role); background: rgba(255, 255, 255, 0.6); }
+      .quests { list-style: none; margin: 10px 0 0; padding: 0; }
+      .quests li { padding: 8px 0; border-top: 1px dashed var(--line); font-size: 13px; line-height: 1.5; }
+      .quests li b { display: block; font-size: 14px; }
+      .quests li.hidden-q { opacity: 0.6; }
+      .quests li.done b::after { content: " ✅"; }
+      #resetPassport {
+        margin-top: 10px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--ink);
+        font: inherit;
+        font-size: 12px;
+        text-decoration: underline;
+        opacity: 0.55;
+        cursor: pointer;
+      }
+      /* 小遊戲倒數、手上拿著肉圓時的提示列 */
+      #hud { top: 82px; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 14px; font-weight: 700; white-space: nowrap; z-index: 6; }
+      #hud[hidden] { display: none; }
+      /* 發現或完成任務時的大橫幅 */
+      #toast {
+        position: fixed;
+        top: 22%;
+        left: 50%;
+        max-width: calc(100% - 32px);
+        padding: 14px 22px;
+        border-radius: 16px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 18px;
+        font-weight: 900;
+        text-align: center;
+        white-space: pre-line;
+        box-shadow: 0 12px 30px rgba(80, 40, 20, 0.3);
+        opacity: 0;
+        transform: translate(-50%, -10px);
+        transition: opacity 0.3s, transform 0.3s;
+        pointer-events: none;
+        z-index: 8;
+      }
+      #toast.show { opacity: 1; transform: translate(-50%, 0); }
+      /* 角色頭上飄起來的字（乾杯、蓋章、抓到老鼠） */
+      .float-text { color: #fff; font-size: 16px; font-weight: 900; white-space: nowrap; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55); pointer-events: none; }
       .stat { display: grid; grid-template-columns: 56px 1fr 30px; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
       .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
       .bar i { display: block; height: 100%; width: 0; background: var(--role); border-radius: 99px; transition: width 1.2s ease; }
@@ -285,6 +375,7 @@
         #card { left: 12px; right: 12px; width: auto; bottom: 140px; padding: 14px; }
         /* 手機上展開時最多佔半個畫面，內容太長就在卡片裡捲動 */
         #card .card-inner { max-height: 45vh; overflow-y: auto; }
+        #hud { top: auto; bottom: 200px; }
         #timeline { bottom: 12px; }
         #back { left: auto; right: 12px; top: 14px; bottom: auto; padding: 8px 14px 8px 10px; font-size: 13px; }
       }
@@ -330,18 +421,34 @@
             <span class="tag"></span>
             <span class="cardName"></span>
             <span class="title"></span>
+            <span class="qbadge" id="qbadge"></span>
             <span class="chev" aria-hidden="true">▾</span>
         </button>
         <div class="card-body" id="cardBody">
             <div class="card-inner">
-                <div class="home"></div>
-                <p class="motto"></p>
-                <div id="stats"></div>
-                <div class="skills"></div>
-                <p class="card-hint">點島上的角色，看他的資訊</p>
+                <div class="card-tabs">
+                    <button type="button" data-tab="info" class="on">角色</button>
+                    <button type="button" data-tab="quest">📜 護照・任務</button>
+                </div>
+                <div class="tab-info">
+                    <div class="home"></div>
+                    <div class="drunk-row">醉度 <span class="drunk"></span></div>
+                    <p class="motto"></p>
+                    <div id="stats"></div>
+                    <div class="skills"></div>
+                    <p class="card-hint">點島上的地面，你的角色就會走過去；點其他角色看他的資訊</p>
+                </div>
+                <div class="tab-quest" hidden>
+                    <div id="stampGrid"></div>
+                    <ul class="quests" id="questList"></ul>
+                    <button type="button" id="resetPassport">清除護照，重新開始</button>
+                </div>
             </div>
         </div>
     </section>
+
+    <div id="hud" class="panel" hidden></div>
+    <div id="toast" role="status" aria-live="polite"></div>
 
     <aside id="log" class="panel">
         <div class="head"><b>CITY LOG 城市日誌</b><span class="live">LIVE</span></div>
@@ -420,7 +527,9 @@
         const card = document.getElementById("card");
         const statsBox = document.getElementById("stats");
         const skillsBox = card.querySelector(".skills");
+        let cardKey = playerKey;
         function showCard(key) {
+          cardKey = key;
           const player = players[key];
           const { roleIndex: ri, stats } = profiles[key];
           const role = roles[ri];
@@ -475,7 +584,7 @@
         setCardOpen(!window.matchMedia("(max-width: 760px)").matches);
         cardToggle.addEventListener("click", () => setCardOpen(card.classList.contains("collapsed")));
 
-        window.ISLAND = { name, roleIndex, roles, players, playerKey, profiles, showCard };
+        window.ISLAND = { name, roleIndex, roles, players, playerKey, profiles, showCard, get cardKey() { return cardKey; } };
       })();
     </script>
     <script type="module">
@@ -1281,7 +1390,7 @@
         }
         if (cityKey !== focusKey && travel.t >= 1) focusOn(cityKey);
       }
-      buddies.forEach(b => b.plate.addEventListener("click", () => selectBuddy(b)));
+      buddies.forEach(b => b.plate.addEventListener("click", () => (feedState.holding ? feedBuddy(b) : selectBuddy(b))));
       const player = buddies.find(b => b.def.key === playerKey);
       // 你選的那位，名牌多一顆星
       player.plate.firstChild.textContent = `★ ${player.def.name}`;
@@ -1296,14 +1405,21 @@
       // ---------- 走路網：三座島各自的路網，再用縱貫線串起來 ----------
       // 每個節點：世界座標 p、屬於哪座城（或 "highway"）、相鄰節點
       const walkNodes = [];
-      const addWalkNode = (p, city) => { walkNodes.push({ p, city, next: new Set() }); return walkNodes.length - 1; };
+      const addWalkNode = (p, city, tag) => { walkNodes.push({ p, city, tag, next: new Set() }); return walkNodes.length - 1; };
+      // 搭小竹筏過海的路段（高雄 ⇄ 旗津）
+      const ferryEdges = new Set();
+      const edgeKey = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
       const linkWalk = (a, b) => { walkNodes[a].next.add(b); walkNodes[b].next.add(a); };
       const cityGates = {};
       const cityNodes = {};
       Object.values(cities).forEach(c => {
         const base = walkNodes.length;
-        c.walk.nodes.forEach(p => addWalkNode(p.clone().add(c.group.position), c.key));
+        c.walk.nodes.forEach((p, i) => addWalkNode(p.clone().add(c.group.position), c.key, c.walk.tags?.[i]));
         c.walk.edges.forEach(([a, b]) => linkWalk(base + a, base + b));
+        (c.walk.ferry || []).forEach(([a, b]) => {
+          linkWalk(base + a, base + b);
+          ferryEdges.add(edgeKey(base + a, base + b));
+        });
         cityGates[c.key] = base + c.walk.gate;
         cityNodes[c.key] = c.walk.nodes.map((_, i) => base + i);
       });
@@ -1353,35 +1469,121 @@
         w.along = 0;
       }
 
+      const mugGlass = new THREE.MeshStandardMaterial({ color: 0xf2b134, transparent: true, opacity: 0.85, roughness: 0.2 });
+      const mugFoam = mat(0xfffbe8, { flatShading: false });
+      player.isPlayer = true;
       buddies.forEach(b => {
         const start = pickFrom(cityNodes[b.def.home]);
-        b.walk = { node: start, lastCity: b.def.home, path: [start], seg: 0, along: 0, pause: 1 + Math.random() * 2, hop: Math.random() * 6 };
+        b.walk = { node: start, lastCity: b.def.home, path: [start], seg: 0, along: 0, pause: 1 + Math.random() * 2, hop: Math.random() * 6, toast: 0 };
         b.root.position.copy(walkNodes[start].p);
+        b.drunk = 0;
+        // 乾杯用的啤酒杯，平常藏起來
+        b.mug = new THREE.Group();
+        const glassBody = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.3, 14), mugGlass);
+        const foam = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.135, 0.07, 14), mugFoam);
+        foam.position.y = 0.17;
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.02, 6, 12, Math.PI), mugGlass);
+        handle.position.x = 0.13;
+        handle.rotation.z = -Math.PI / 2;
+        b.mug.add(glassBody, foam, handle);
+        b.mug.position.set(0, -1.05, 0.1);
+        b.mug.visible = false;
+        b.arms[1].add(b.mug);
       });
+
+      // 停下來時原地輕輕晃；喝醉了晃得更厲害
+      function idlePose(b, t) {
+        const d = Math.min(b.drunk, 5) / 5;
+        b.body.position.y = 0;
+        b.body.rotation.z = Math.sin(t * 3 + b.walk.hop) * (0.05 + 0.15 * d);
+        b.legs.forEach(l => { l.rotation.x = 0; });
+        b.arms.forEach(a => { a.rotation.x = 0; });
+      }
+
+      // 搭旗津渡輪：在渡船頭等船靠岸 → 跳上頂層甲板 → 跟著船過海 → 對岸靠岸後跳下船
+      const ferryDeck = new THREE.Vector3();
+      function rideFerry(b, from, to, dt, t) {
+        const w = b.walk;
+        const ride = cities.kaohsiung.ferryRide;
+        const fromSide = from.tag === "qijin" ? "A" : "B";
+        const toSide = fromSide === "A" ? "B" : "A";
+        // 每個角色在甲板上站不同位置，才不會疊在一起
+        const slot = buddies.indexOf(b) - 1;
+        ride.boat.localToWorld(ferryDeck.set(slot * 0.5, 1.02, 0));
+        b.root.rotation.y = Math.atan2(to.p.x - from.p.x, to.p.z - from.p.z);
+        const f = w.ferry || (w.ferry = { phase: "wait", t: 0 });
+        idlePose(b, t);
+        if (f.phase === "wait") {
+          b.root.position.copy(from.p);
+          if (ride.dockedAt === fromSide) {
+            f.phase = "board";
+            f.t = 0;
+            if (b.isPlayer) log(`⛴️ 旗津渡輪靠岸了，${b.def.name} 跳上船！`);
+          }
+        } else if (f.phase === "board" || f.phase === "alight") {
+          f.t = Math.min(1, f.t + dt / 0.6);
+          const [p0, p1] = f.phase === "board" ? [from.p, ferryDeck] : [ferryDeck, to.p];
+          b.root.position.lerpVectors(p0, p1, f.t);
+          b.root.position.y += Math.sin(f.t * Math.PI) * 0.8;
+          if (f.t >= 1 && f.phase === "board") f.phase = "ride";
+          if (f.t >= 1 && f.phase === "alight") {
+            w.ferry = null;
+            w.seg += 1;
+            w.along = 0;
+            w.node = w.path[w.seg];
+          }
+        } else {
+          b.root.position.copy(ferryDeck);
+          if (ride.dockedAt === toSide) {
+            f.phase = "alight";
+            f.t = 0;
+          }
+        }
+      }
 
       function updateBuddy(b, dt, t) {
         const w = b.walk;
         const tail = b.body.userData.tail;
         if (tail) tail.rotation.z = Math.sin(t * 3 + w.hop) * 0.5;
-        if (w.pause > 0) {
-          // 停下來時原地輕輕晃
-          w.pause -= dt;
-          b.body.position.y = 0;
-          b.body.rotation.z = Math.sin(t * 3) * 0.05;
+        b.drunk = Math.max(0, b.drunk - dt / 45);
+        // 乾杯中：舉起啤酒杯，原地開心地跳
+        if (w.toast > 0) {
+          w.toast -= dt;
+          w.pause = Math.max(0, w.pause - dt);
+          b.mug.visible = w.toast > 0;
+          b.body.position.y = Math.abs(Math.sin(t * 8)) * 0.15;
           b.legs.forEach(l => { l.rotation.x = 0; });
-          b.arms.forEach(a => { a.rotation.x = 0; });
-          if (w.pause <= 0) planTrip(b);
+          b.arms[0].rotation.x = 0;
+          b.arms[1].rotation.x = w.toast > 0 ? -2.5 : 0;
           return;
         }
-        b.body.rotation.z = 0;
+        if (w.pause > 0) {
+          w.pause -= dt;
+          idlePose(b, t);
+          // 還有沒走完的路（例如乾杯打斷）就繼續走；走完了，其他角色自己規劃下一趟，你的角色等你指揮
+          if (w.pause <= 0 && !w.path[w.seg + 1] && !b.isPlayer) planTrip(b);
+          return;
+        }
         const from = walkNodes[w.path[w.seg]];
         const to = walkNodes[w.path[w.seg + 1]];
         if (!to) {
+          if (b.isPlayer) {
+            idlePose(b, t);
+            destMarker.visible = false;
+            return;
+          }
           w.pause = 1.5 + Math.random() * 2.5;
           return;
         }
-        // 在縱貫線上走快一點
-        const speed = from.city === "highway" || to.city === "highway" ? 3.4 : 1.7;
+        if (ferryEdges.has(edgeKey(w.path[w.seg], w.path[w.seg + 1]))) {
+          rideFerry(b, from, to, dt, t);
+          return;
+        }
+        const d = Math.min(b.drunk, 5) / 5;
+        // 在縱貫線上走快一點，喝醉了走得慢；你點擊指揮的角色走 3 倍快
+        let speed = from.city === "highway" || to.city === "highway" ? 3.4 : 1.7;
+        speed *= 1 - d * 0.3;
+        if (b.isPlayer) speed *= 3;
         const len = Math.max(from.p.distanceTo(to.p), 0.001);
         w.along += (speed * dt) / len;
         if (w.along >= 1) {
@@ -1396,13 +1598,23 @@
           return;
         }
         b.root.position.lerpVectors(from.p, to.p, w.along);
-        const heading = Math.atan2(to.p.x - from.p.x, to.p.z - from.p.z);
+        const dirX = to.p.x - from.p.x;
+        const dirZ = to.p.z - from.p.z;
+        const heading = Math.atan2(dirX, dirZ);
         let diff = heading - b.root.rotation.y;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
         b.root.rotation.y += diff * Math.min(1, dt * 10);
+        // 喝醉了走路會左右晃
+        if (d > 0) {
+          const dl = Math.hypot(dirX, dirZ) || 1;
+          const sway = Math.sin(t * 2.2 + w.hop * 0.1) * 0.4 * d;
+          b.root.position.x += (-dirZ / dl) * sway;
+          b.root.position.z += (dirX / dl) * sway;
+        }
         // 蹦蹦跳跳：每一步都小跳一下
         w.hop += dt * 9;
-        b.body.position.y = Math.abs(Math.sin(w.hop)) * 0.45;
+        b.body.position.y = Math.abs(Math.sin(w.hop)) * 0.45 * (1 + d * 0.5);
+        b.body.rotation.z = Math.sin(t * 3.1) * 0.2 * d;
         b.legs.forEach((l, i) => { l.rotation.x = Math.sin(w.hop + i * Math.PI) * 0.6; });
         b.arms.forEach((a, i) => { a.rotation.x = Math.sin(w.hop + i * Math.PI) * 0.8; });
       }
@@ -1786,25 +1998,372 @@
           if (o.userData.cityKey) { cityKey = o.userData.cityKey; break; }
         }
         if (target && target.userData.clickable === "buddy") {
-          selectBuddy(buddies.find(x => x.def.key === target.userData.buddyKey));
+          const b = buddies.find(x => x.def.key === target.userData.buddyKey);
+          if (feedState.holding) feedBuddy(b);
+          else selectBuddy(b);
           return;
         }
         if (target && target.userData.clickable === "highway") {
           log(`${name} 騎著機車上了台 1 線，從台北一路南下，經過彰化，直奔高雄！`);
+          commandWalk(nearestWalkNode(hit.point, "highway"));
           return;
         }
         if (target && target.userData.clickable === "whale") {
           log(`粉紅鯨魚對 ${name} 眨了眨眼，甩甩尾巴游走了 ♡`);
           return;
         }
-        // 全景或點到別座島：先飛過去
-        if (cityKey && cityKey !== focusKey) {
+        if (!cityKey) return;
+        // 全景或點到別座島：鏡頭飛過去，你的角色也沿著縱貫線走過去
+        if (cityKey !== focusKey) {
           focusOn(cityKey);
+          commandWalk(nearestWalkNode(hit.point, cityKey));
           return;
         }
+        if (target && target.userData.clickable === "rat") {
+          catchRat(target, hit.point);
+          return;
+        }
+        // 點島上任何地方，你的角色就走到最近的路口
+        commandWalk(nearestWalkNode(hit.point, cityKey));
         if (!target) return;
+        const key = target.userData.clickable;
+        if (STAMPS.some(st => st.key === key)) stamp(key);
+        if (key === "bawan") pickUpBawan();
+        if (key === "lighthouse") revealQuest("sunset");
         log(cities[cityKey].onClick(target, { name, role, roles, roleIndex }));
       });
+
+      // ---------- 1. 指揮你的角色：點哪裡就走到最近的路口 ----------
+      const destMarker = new THREE.Mesh(
+        new THREE.RingGeometry(0.45, 0.7, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0xdb6a41, transparent: true, opacity: 0.9, depthWrite: false })
+      );
+      destMarker.visible = false;
+      scene.add(destMarker);
+
+      function nearestWalkNode(point, cityKey) {
+        const list = cityKey === "highway" ? highwayNodes : cityNodes[cityKey];
+        let best = list[0];
+        let bestD = Infinity;
+        list.forEach(i => {
+          const p = walkNodes[i].p;
+          const d = (p.x - point.x) ** 2 + (p.z - point.z) ** 2;
+          if (d < bestD) { bestD = d; best = i; }
+        });
+        return best;
+      }
+
+      function commandWalk(dest) {
+        const w = player.walk;
+        // 正在走的這一段先走完，再接上新的路線（不會瞬間跳回路口）
+        // 還在渡船頭等船的話就不搭了；已經上船的就坐到對岸再說
+        const waitingForFerry = w.ferry && w.ferry.phase === "wait";
+        if (waitingForFerry) w.ferry = null;
+        const moving = w.pause <= 0 && w.toast <= 0 && w.path[w.seg + 1] !== undefined && !waitingForFerry;
+        const next = moving ? w.path[w.seg + 1] : w.node;
+        const rest = walkPath(next, dest);
+        w.path = moving ? [w.path[w.seg], ...rest] : rest;
+        w.seg = 0;
+        if (!moving) w.along = 0;
+        w.pause = 0;
+        w.toast = 0;
+        player.mug.visible = false;
+        destMarker.position.copy(walkNodes[dest].p).setY(walkNodes[dest].p.y + 0.06);
+        destMarker.visible = dest !== w.node || moving;
+      }
+
+      // ---------- 角色頭上飄起來的字 ----------
+      const floats = [];
+      function floatText(text, pos) {
+        const div = document.createElement("div");
+        div.className = "float-text";
+        div.textContent = text;
+        const obj = new CSS2DObject(div);
+        obj.position.copy(pos);
+        scene.add(obj);
+        floats.push({ obj, div, age: 0 });
+      }
+      function updateFloats(dt) {
+        for (let i = floats.length - 1; i >= 0; i--) {
+          const f = floats[i];
+          f.age += dt;
+          f.obj.position.y += dt * 0.9;
+          f.div.style.opacity = String(Math.max(0, 1 - f.age / 1.8));
+          if (f.age > 1.8) {
+            scene.remove(f.obj);
+            floats.splice(i, 1);
+          }
+        }
+      }
+      const overHead = b => b.root.position.clone().add(new THREE.Vector3(0, 3.8, 0));
+
+      // ---------- 2. 酒肉檳友乾杯：兩人走到附近就停下來乾一杯，醉度 +1 ----------
+      const toastCooldown = new Map();
+      function checkToasts(t) {
+        for (let i = 0; i < buddies.length; i++) {
+          for (let j = i + 1; j < buddies.length; j++) {
+            const a = buddies[i];
+            const b = buddies[j];
+            if (a.walk.toast > 0 || b.walk.toast > 0 || a.walk.ferry || b.walk.ferry) continue;
+            const pa = a.root.position;
+            const pb = b.root.position;
+            if (Math.hypot(pa.x - pb.x, pa.z - pb.z) > 1.8 || Math.abs(pa.y - pb.y) > 1) continue;
+            const key = a.def.key + b.def.key;
+            if (t - (toastCooldown.get(key) ?? -999) < 25) continue;
+            toastCooldown.set(key, t);
+            [[a, b], [b, a]].forEach(([me, other]) => {
+              me.walk.toast = 2.6;
+              me.root.rotation.y = Math.atan2(other.root.position.x - me.root.position.x, other.root.position.z - me.root.position.z);
+              me.drunk = Math.min(6, me.drunk + 1);
+              floatText("🍻 乾！", overHead(me));
+            });
+            log(`${a.def.name} 和 ${b.def.name} 在${whereIs(a)}巧遇，舉杯乾了一杯！🍻`);
+            [a, b].forEach(x => { if (x.drunk >= 4) log(`${x.def.name} 已經醉茫茫，走路開始東倒西歪了… 🥴`); });
+          }
+        }
+      }
+      // 角色卡的醉度、醉茫茫時名牌上多一個 🥴
+      function refreshDrunk() {
+        const b = buddies.find(x => x.def.key === window.ISLAND.cardKey);
+        const n = Math.round(Math.min(b.drunk, 5));
+        document.querySelector("#card .drunk").textContent =
+          "🍺".repeat(n) + "・".repeat(5 - n) + (n >= 4 ? " 醉茫茫" : n >= 2 ? " 微醺" : " 清醒");
+        buddies.forEach(x => {
+          x.plate.querySelector("em").textContent = x.def.tagline + (x.drunk >= 3 ? " 🥴" : "");
+        });
+      }
+      setInterval(refreshDrunk, 500);
+
+      // ---------- 3. 護照集章與隱藏任務 ----------
+      const STAMPS = [
+        { key: "taipei101", city: "taipei", name: "台北 101", icon: "🏙️" },
+        { key: "cks", city: "taipei", name: "中正廟", icon: "🏛️" },
+        { key: "grandhotel", city: "taipei", name: "圓山大飯店", icon: "🏮" },
+        { key: "yangmingshan", city: "taipei", name: "陽明山", icon: "⛰️" },
+        { key: "buddha", city: "changhua", name: "八卦山大佛", icon: "🧘" },
+        { key: "bridge", city: "changhua", name: "西螺大橋", icon: "🌉" },
+        { key: "bawan", city: "changhua", name: "彰化肉圓", icon: "🥟" },
+        { key: "roundhouse", city: "changhua", name: "扇形車庫", icon: "🚂" },
+        { key: "wanggong", city: "changhua", name: "王功燈塔", icon: "🗼" },
+        { key: "sky85", city: "kaohsiung", name: "85 大樓", icon: "🏢" },
+        { key: "wheel", city: "kaohsiung", name: "夢時代摩天輪", icon: "🎡" },
+        { key: "pier2", city: "kaohsiung", name: "駁二藝術特區", icon: "🎨" },
+        { key: "lighthouse", city: "kaohsiung", name: "旗津燈塔", icon: "🚨" },
+      ];
+      const QUESTS = {
+        rats: { title: "台北抓老鼠", hint: "天龍城的巷子裡，好像有什麼東西竄來竄去…", goal: "30 秒內抓到 5 隻老鼠（點老鼠就會開始計時）" },
+        feed: { title: "彰化餵肉圓", hint: "彰化的肉圓聞起來好香，好像可以外帶…", goal: "點肉圓拿一顆，再點檳友餵他；三位都要餵到" },
+        sunset: { title: "旗津看夕陽", hint: "聽說高雄有個看夕陽的祕密景點…", goal: "傍晚 17:00–18:30 時，讓你的角色站在旗津島上" },
+      };
+      // 地標的中心與範圍：你的角色走到附近就自動蓋章
+      scene.updateMatrixWorld(true);
+      STAMPS.forEach(st => {
+        let obj = null;
+        cities[st.city].group.traverse(o => { if (!obj && o.userData.clickable === st.key) obj = o; });
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new THREE.Vector3());
+        st.center = box.getCenter(new THREE.Vector3());
+        st.reach = Math.max(size.x, size.z) / 2 + 3;
+      });
+
+      const PASSPORT_KEY = "drunkPassport";
+      let passport = { stamps: {}, quests: { rats: "hidden", feed: "hidden", sunset: "hidden" }, fed: {}, master: false };
+      try {
+        const saved = JSON.parse(localStorage.getItem(PASSPORT_KEY) || "null");
+        if (saved && saved.quests) passport = { ...passport, ...saved, quests: { ...passport.quests, ...saved.quests } };
+      } catch (e) { /* 無痕模式等情況就從空白護照開始 */ }
+      const savePassport = () => { try { localStorage.setItem(PASSPORT_KEY, JSON.stringify(passport)); } catch (e) { /* 忽略 */ } };
+
+      const toastEl = document.getElementById("toast");
+      let toastTimer = 0;
+      function showToast(text) {
+        toastEl.textContent = text;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2800);
+      }
+
+      function stamp(key) {
+        if (passport.stamps[key]) return;
+        const st = STAMPS.find(x => x.key === key);
+        passport.stamps[key] = true;
+        log(`📜 護照蓋章：${st.icon} ${st.name}`);
+        floatText(`📜 ${st.name}`, overHead(player));
+        savePassport();
+        renderPassport();
+        checkMaster();
+      }
+      function revealQuest(k) {
+        if (passport.quests[k] !== "hidden") return;
+        passport.quests[k] = "found";
+        log(`❓ 發現隱藏任務：${QUESTS[k].title}！`);
+        showToast(`❓ 發現隱藏任務\n${QUESTS[k].title}`);
+        savePassport();
+        renderPassport();
+      }
+      function completeQuest(k) {
+        if (passport.quests[k] === "done") return;
+        passport.quests[k] = "done";
+        log(`🎉 完成隱藏任務：${QUESTS[k].title}！`);
+        showToast(`🎉 完成隱藏任務\n${QUESTS[k].title}`);
+        savePassport();
+        renderPassport();
+        checkMaster();
+      }
+      function checkMaster() {
+        const allStamps = STAMPS.every(st => passport.stamps[st.key]);
+        const allQuests = Object.values(passport.quests).every(v => v === "done");
+        if (allStamps && allQuests && !passport.master) {
+          passport.master = true;
+          savePassport();
+          setTimeout(() => showToast("🏅 恭喜！\n你是酒肉檳友島環島達人！"), 3000);
+          log(`🏅 集滿 ${STAMPS.length} 個章、完成 ${Object.keys(QUESTS).length} 個隱藏任務，成為酒肉檳友島環島達人！`);
+        }
+      }
+
+      // 護照面板（在角色卡的「護照・任務」分頁裡）
+      const CITY_NAMES = { taipei: "🏙️ 台北天龍城", changhua: "🥟 彰化肉圓城", kaohsiung: "⚓ 高雄港城" };
+      function renderPassport() {
+        const grid = document.getElementById("stampGrid");
+        grid.replaceChildren();
+        Object.keys(CITY_NAMES).forEach(city => {
+          const title = document.createElement("div");
+          title.className = "stamp-city";
+          title.textContent = CITY_NAMES[city];
+          const box = document.createElement("div");
+          box.className = "stamps";
+          STAMPS.filter(st => st.city === city).forEach(st => {
+            const chip = document.createElement("span");
+            chip.className = "stamp" + (passport.stamps[st.key] ? " on" : "");
+            chip.textContent = st.icon;
+            const label = document.createElement("small");
+            label.textContent = st.name;
+            chip.appendChild(label);
+            box.appendChild(chip);
+          });
+          grid.append(title, box);
+        });
+        const list = document.getElementById("questList");
+        list.replaceChildren();
+        Object.entries(QUESTS).forEach(([k, q]) => {
+          const li = document.createElement("li");
+          const status = passport.quests[k];
+          li.className = status === "hidden" ? "hidden-q" : status;
+          const title = document.createElement("b");
+          title.textContent = status === "hidden" ? "❓ 隱藏任務" : q.title;
+          const text = document.createElement("span");
+          text.textContent = status === "hidden" ? q.hint : status === "done" ? "已完成！" : q.goal;
+          if (k === "feed" && status === "found") {
+            const fed = buddies.filter(b => passport.fed[b.def.key]).length;
+            text.textContent += `（已餵 ${fed}/3）`;
+          }
+          li.append(title, text);
+          list.appendChild(li);
+        });
+        const done = STAMPS.filter(st => passport.stamps[st.key]).length + Object.values(passport.quests).filter(v => v === "done").length;
+        document.getElementById("qbadge").textContent = `📜 ${done}/${STAMPS.length + Object.keys(QUESTS).length}`;
+      }
+      document.querySelectorAll(".card-tabs button").forEach(btn => btn.addEventListener("click", () => {
+        document.querySelectorAll(".card-tabs button").forEach(x => x.classList.toggle("on", x === btn));
+        document.querySelector("#card .tab-info").hidden = btn.dataset.tab !== "info";
+        document.querySelector("#card .tab-quest").hidden = btn.dataset.tab !== "quest";
+      }));
+      document.getElementById("resetPassport").addEventListener("click", () => {
+        if (!confirm("確定要清除護照上的所有章和任務進度嗎？")) return;
+        passport = { stamps: {}, quests: { rats: "hidden", feed: "hidden", sunset: "hidden" }, fed: {}, master: false };
+        savePassport();
+        renderPassport();
+        log("📜 護照清空了，重新開始環島吧！");
+      });
+      renderPassport();
+
+      // 提示列：抓老鼠倒數 > 手上拿著肉圓
+      const hud = document.getElementById("hud");
+      function updateHud() {
+        if (ratGame.running) hud.textContent = `🐭 抓老鼠　剩 ${Math.ceil(ratGame.time)} 秒　${ratGame.score} / ${ratGame.goal} 隻`;
+        else if (feedState.holding) hud.textContent = "🥟 手上拿著一顆肉圓：點一位檳友餵他吃";
+        hud.hidden = !ratGame.running && !feedState.holding;
+      }
+
+      // 隱藏任務一：台北抓老鼠（點第一隻老鼠就開始 30 秒計時）
+      const ratGame = { running: false, time: 0, score: 0, goal: 5, duration: 30 };
+      function catchRat(target, point) {
+        const api = cities.taipei.ratGame;
+        if (!api.catch(target)) return;
+        floatText("🐭 吱！+1", point.clone().add(new THREE.Vector3(0, 0.8, 0)));
+        revealQuest("rats");
+        if (passport.quests.rats === "done") {
+          log(`${name} 又抓到一隻小老鼠，牠吱吱叫著逃走了。`);
+          return;
+        }
+        if (!ratGame.running) {
+          Object.assign(ratGame, { running: true, time: ratGame.duration, score: 0 });
+          api.setFrenzy(true);
+          log(`🐭 抓老鼠開始！${ratGame.duration} 秒內抓到 ${ratGame.goal} 隻，老鼠會跑得更快喔！`);
+        }
+        ratGame.score += 1;
+        if (ratGame.score >= ratGame.goal) {
+          ratGame.running = false;
+          api.setFrenzy(false);
+          log(`🐭 ${ratGame.goal} 隻全部抓到！天龍城的巷子清潔溜溜。`);
+          completeQuest("rats");
+        }
+        updateHud();
+      }
+
+      // 隱藏任務二：彰化餵肉圓（點肉圓拿一顆，再點檳友餵他）
+      const feedState = { holding: false };
+      function pickUpBawan() {
+        revealQuest("feed");
+        feedState.holding = true;
+        log("🥟 拿起一顆熱騰騰的肉圓！點一位檳友餵他吃。");
+        updateHud();
+      }
+      function feedBuddy(b) {
+        feedState.holding = false;
+        updateHud();
+        window.ISLAND.showCard(b.def.key);
+        b.drunk = Math.max(0, b.drunk - 2);
+        floatText("😋 好吃！", overHead(b));
+        log(`${b.def.name} 吃下一顆彰化肉圓，滿足地拍拍肚子，酒也醒了一點！`);
+        if (passport.quests.feed !== "done") {
+          passport.fed[b.def.key] = true;
+          savePassport();
+          if (buddies.every(x => passport.fed[x.def.key])) completeQuest("feed");
+          else renderPassport();
+        }
+      }
+
+      // 每一格畫面：抓老鼠倒數、走到地標蓋章、旗津看夕陽
+      let playCheck = 0;
+      function updatePlay(dt, t) {
+        if (ratGame.running) {
+          ratGame.time -= dt;
+          if (ratGame.time <= 0) {
+            ratGame.running = false;
+            cities.taipei.ratGame.setFrenzy(false);
+            log(`⏰ 時間到！只抓到 ${ratGame.score} 隻，再點一隻老鼠重新挑戰。`);
+          }
+          updateHud();
+        }
+        destMarker.material.opacity = 0.55 + Math.sin(t * 5) * 0.35;
+        playCheck -= dt;
+        if (playCheck > 0) return;
+        playCheck = 0.25;
+        const pp = player.root.position;
+        STAMPS.forEach(st => {
+          if (!passport.stamps[st.key] && Math.hypot(pp.x - st.center.x, pp.z - st.center.z) < st.reach) stamp(st.key);
+        });
+        // 隱藏任務三：旗津看夕陽
+        if (walkNodes[player.walk.node].tag === "qijin") {
+          revealQuest("sunset");
+          if (passport.quests.sunset !== "done" && hour >= 17 && hour <= 18.5) {
+            floatText("🌅", overHead(player));
+            log("🌅 夕陽把旗津的海面染成一片金黃，海風輕輕吹過…");
+            completeQuest("sunset");
+          }
+        }
+      }
 
       // ---------- 動畫 ----------
       function animate() {
@@ -1832,8 +2391,11 @@
         seaTime.value = t;
         sparkMat.uniforms.uTime.value = t;
 
-        // 三位檳友走跳
+        // 三位檳友走跳、乾杯；護照與任務
         buddies.forEach(bd => updateBuddy(bd, dt, t));
+        checkToasts(t);
+        updatePlay(dt, t);
+        updateFloats(dt);
 
         updateWhale(t);
         updateHighway(dt);
@@ -1871,6 +2433,7 @@
         log(playerKey === "kanko" ? `${name} 今天戴著自己的金色皇冠出門！` : `${name} 今天戴著${HATS[hatIndex].name}出門！`);
         log("蛙哥在高雄、貓哥在台北、冠子さん在彰化，三個人開始走跳了！");
         log("點上方的按鈕，或直接點一座島，就能飛過去看看。");
+        log(`👉 點島上的地面，${name} 就會走過去；走到地標會蓋護照章，還有隱藏任務等你發現！`);
         // 網址帶 #taipei／#changhua／#kaohsiung 時，直接飛到那座城
         const start = location.hash.slice(1);
         focusOn(cities[start] ? start : window.ISLAND.players[playerKey].home);
