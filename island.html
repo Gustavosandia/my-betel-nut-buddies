@@ -95,13 +95,52 @@
         font-size: 12px;
         font-weight: 700;
       }
-      #card h2 { margin: 10px 0 2px; font-size: 26px; }
-      #card .home { font-size: 13px; opacity: 0.65; margin-bottom: 6px; }
+      /* 標題列本身就是展開／收合的按鈕 */
+      #card .card-head {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 0 32px 0 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      #card .card-head:focus-visible { outline: 3px solid var(--role); outline-offset: 4px; border-radius: 8px; }
+      #card .cardName { display: block; margin: 10px 0 2px; font-size: 26px; font-weight: 700; }
+      #card .chev {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--line);
+        font-size: 14px;
+        transition: transform 0.25s ease;
+      }
+      /* 詳細資訊：用 grid 列高 0fr ↔ 1fr 做平滑的展開動畫 */
+      #card .card-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.3s ease; }
+      #card .card-inner { overflow: hidden; min-height: 0; }
+      #card .home { margin-top: 4px; font-size: 13px; opacity: 0.65; }
+      #card.collapsed .card-body { grid-template-rows: 0fr; }
+      #card.collapsed .chev { transform: rotate(-90deg); }
+      /* 收合時變成一條精簡的摘要：標籤、名字、稱號排成一行 */
+      #card.collapsed { padding: 12px 16px; width: auto; max-width: min(460px, calc(100% - 48px)); }
+      #card.collapsed .tag, #card.collapsed .title { flex-shrink: 0; white-space: nowrap; }
+      #card.collapsed .card-head { display: flex; align-items: center; gap: 8px; padding-right: 32px; }
+      #card.collapsed .cardName { margin: 0; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #card.collapsed .title { font-size: 13px; white-space: nowrap; }
+      #card.collapsed .chev { top: 50%; margin-top: -14px; }
       #card .card-hint { margin: 12px 0 0; font-size: 12px; opacity: 0.5; }
       /* 切換角色時卡片輕輕彈一下 */
       #card.pop { animation: cardPop 0.35s ease; }
       @keyframes cardPop { 0% { transform: scale(0.96); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
-      #card .title { font-size: 16px; font-weight: 700; color: var(--role); }
+      #card .title { display: block; font-size: 16px; font-weight: 700; color: var(--role); }
       #card .motto { margin: 10px 0 14px; font-size: 14px; line-height: 1.6; }
       .stat { display: grid; grid-template-columns: 56px 1fr 30px; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
       .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
@@ -244,7 +283,8 @@
         #islands { left: 12px; right: 12px; transform: none; overflow-x: auto; bottom: 76px; }
         #islands button { padding: 7px 10px; font-size: 13px; }
         #card { left: 12px; right: 12px; width: auto; bottom: 140px; padding: 14px; }
-        #card .motto, .skills, #stats { display: none; }
+        /* 手機上展開時最多佔半個畫面，內容太長就在卡片裡捲動 */
+        #card .card-inner { max-height: 45vh; overflow-y: auto; }
         #timeline { bottom: 12px; }
         #back { left: auto; right: 12px; top: 14px; bottom: auto; padding: 8px 14px 8px 10px; font-size: 13px; }
       }
@@ -285,14 +325,22 @@
     </nav>
 
     <section id="card" class="panel">
-        <span class="tag"></span>
-        <h2 class="cardName"></h2>
-        <div class="home"></div>
-        <div class="title"></div>
-        <p class="motto"></p>
-        <div id="stats"></div>
-        <div class="skills"></div>
-        <p class="card-hint">點島上的角色，看他的資訊</p>
+        <!-- 標題列：點一下展開／收合詳細資訊 -->
+        <button class="card-head" id="cardToggle" type="button" aria-expanded="true" aria-controls="cardBody">
+            <span class="tag"></span>
+            <span class="cardName"></span>
+            <span class="title"></span>
+            <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="card-body" id="cardBody">
+            <div class="card-inner">
+                <div class="home"></div>
+                <p class="motto"></p>
+                <div id="stats"></div>
+                <div class="skills"></div>
+                <p class="card-hint">點島上的角色，看他的資訊</p>
+            </div>
+        </div>
     </section>
 
     <aside id="log" class="panel">
@@ -416,6 +464,16 @@
           card.classList.add("pop");
         }
         showCard(playerKey);
+
+        // 角色卡可以展開／收合：手機（窄螢幕）預設收合成一條摘要，電腦預設展開
+        const cardToggle = document.getElementById("cardToggle");
+        function setCardOpen(open) {
+          card.classList.toggle("collapsed", !open);
+          cardToggle.setAttribute("aria-expanded", String(open));
+          cardToggle.title = open ? "收合角色卡" : "展開角色卡";
+        }
+        setCardOpen(!window.matchMedia("(max-width: 760px)").matches);
+        cardToggle.addEventListener("click", () => setCardOpen(card.classList.contains("collapsed")));
 
         window.ISLAND = { name, roleIndex, roles, players, playerKey, profiles, showCard };
       })();
