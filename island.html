@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRUNK 酒肉檳友島</title>
+    <style>
+      :root {
+        --brand: #db6a41;
+        --role: #db6a41;
+        --ink: #2b211c;
+        --paper: rgba(255, 250, 242, 0.88);
+        --line: rgba(43, 33, 28, 0.12);
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+        color: var(--ink);
+        background: #f6d9b8;
+      }
+      #scene { position: fixed; inset: 0; }
+
+      /* 頂部標題 */
+      header {
+        position: fixed;
+        top: 20px;
+        left: 24px;
+        pointer-events: none;
+      }
+      header small {
+        font-size: 12px;
+        letter-spacing: 0.25em;
+        color: var(--brand);
+        font-weight: 700;
+      }
+      header h1 {
+        margin: 4px 0 0;
+        font-size: 30px;
+        letter-spacing: 0.04em;
+      }
+      header p { margin: 4px 0 0; font-size: 14px; opacity: 0.7; }
+
+      .panel {
+        position: fixed;
+        background: var(--paper);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(80, 40, 20, 0.15);
+      }
+
+      /* 島嶼切換 */
+      #islands {
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 999px;
+      }
+      #islands button {
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 8px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.2s, color 0.2s;
+      }
+      #islands button:hover { background: rgba(219, 106, 65, 0.12); }
+      #islands button.active { background: var(--brand); color: #fff; }
+
+      /* 角色卡 */
+      #card {
+        left: 24px;
+        bottom: 96px;
+        width: 300px;
+        padding: 20px;
+        border-top: 6px solid var(--role);
+      }
+      #card .tag {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: var(--role);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      #card h2 { margin: 10px 0 2px; font-size: 26px; }
+      #card .home { font-size: 13px; opacity: 0.65; margin-bottom: 6px; }
+      #card .card-hint { margin: 12px 0 0; font-size: 12px; opacity: 0.5; }
+      /* 切換角色時卡片輕輕彈一下 */
+      #card.pop { animation: cardPop 0.35s ease; }
+      @keyframes cardPop { 0% { transform: scale(0.96); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
+      #card .title { font-size: 16px; font-weight: 700; color: var(--role); }
+      #card .motto { margin: 10px 0 14px; font-size: 14px; line-height: 1.6; }
+      .stat { display: grid; grid-template-columns: 56px 1fr 30px; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+      .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+      .bar i { display: block; height: 100%; width: 0; background: var(--role); border-radius: 99px; transition: width 1.2s ease; }
+      .skills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+      .skills span { font-size: 12px; padding: 4px 9px; border-radius: 8px; border: 1px solid var(--role); color: var(--role); }
+
+      /* 城市日誌 */
+      #log {
+        right: 24px;
+        top: 20px;
+        width: 280px;
+        max-height: calc(100% - 140px);
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+      }
+      #log .head { display: flex; justify-content: space-between; align-items: center; }
+      #log .head b { font-size: 13px; letter-spacing: 0.15em; }
+      .live { font-size: 11px; font-weight: 700; color: #fff; background: var(--brand); padding: 2px 8px; border-radius: 99px; animation: blink 1.6s infinite; }
+      @keyframes blink { 50% { opacity: 0.45; } }
+      #log ul { list-style: none; margin: 10px 0 0; padding: 0; overflow-y: auto; font-size: 13px; line-height: 1.5; }
+      #log li { padding: 7px 0; border-bottom: 1px dashed var(--line); animation: drop 0.4s ease; }
+      #log li time { color: var(--brand); font-weight: 700; margin-right: 6px; font-variant-numeric: tabular-nums; }
+      @keyframes drop { from { opacity: 0; transform: translateY(-6px); } }
+
+      /* 時間軸 */
+      #timeline {
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        width: min(560px, calc(100% - 48px));
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      #timeline button {
+        border: 0;
+        background: var(--brand);
+        color: #fff;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      #timeline input { flex: 1; accent-color: var(--brand); }
+      #clock { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 48px; }
+
+      /* 名牌（CSS2D） */
+      .nameplate {
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: #fff;
+        border: 2px solid var(--role);
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      }
+      .nameplate em { font-style: normal; color: var(--role); margin-left: 4px; }
+      .landmark {
+        padding: 3px 9px;
+        border-radius: 6px;
+        background: rgba(43, 33, 28, 0.72);
+        color: #fff;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+      }
+      /* 全景時只顯示島名，地標名稱先藏起來 */
+      body.overview .landmark,
+      body.overview .nameplate { display: none; }
+      /* 角色頭上的名牌可以點（標籤層本身不接收滑鼠，所以這裡單獨打開） */
+      .buddy-tag { pointer-events: auto; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+      .buddy-tag:hover { transform: scale(1.08); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22); }
+      .island-name {
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 6px 14px rgba(80, 40, 20, 0.25);
+        display: none;
+      }
+      body.overview .island-name { display: block; }
+
+      /* 開場 */
+      #intro {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        background: var(--brand);
+        color: #fff;
+        transition: opacity 0.8s ease;
+        z-index: 10;
+      }
+      #intro small { letter-spacing: 0.3em; opacity: 0.8; }
+      #intro h1 { font-size: clamp(32px, 7vw, 64px); margin: 10px 0; }
+      #intro p { opacity: 0.85; }
+      #intro.hide { opacity: 0; pointer-events: none; }
+
+      /* 回到開始畫面：做成醒目的橘色膠囊按鈕 */
+      #back {
+        position: fixed;
+        left: 24px;
+        bottom: 24px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px 10px 14px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 4px 0 #b9502c, 0 10px 22px rgba(219, 106, 65, 0.4);
+        transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
+        z-index: 5;
+      }
+      #back span { font-size: 18px; line-height: 1; }
+      #back:hover { filter: brightness(1.08); transform: translateY(-2px); }
+      #back:active { transform: translateY(3px); box-shadow: 0 1px 0 #b9502c, 0 4px 10px rgba(219, 106, 65, 0.4); }
+      #back:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+      @media (max-width: 1180px) {
+        #islands { top: auto; bottom: 84px; }
+        #card { bottom: 150px; }
+        #back { bottom: 88px; }
+      }
+      @media (max-width: 760px) {
+        header h1 { font-size: 22px; }
+        #log { display: none; }
+        #islands { left: 12px; right: 12px; transform: none; overflow-x: auto; bottom: 76px; }
+        #islands button { padding: 7px 10px; font-size: 13px; }
+        #card { left: 12px; right: 12px; width: auto; bottom: 140px; padding: 14px; }
+        #card .motto, .skills, #stats { display: none; }
+        #timeline { bottom: 12px; }
+        #back { left: auto; right: 12px; top: 14px; bottom: auto; padding: 8px 14px 8px 10px; font-size: 13px; }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+    <!-- 三座城市各自一個檔案；用一般 script 載入，直接雙擊 html 打開也能用 -->
+    <script src="js/cities/taipei.js"></script>
+    <script src="js/cities/changhua.js"></script>
+    <script src="js/cities/kaohsiung.js"></script>
+</head>
+<body class="overview">
+    <div id="intro">
+        <small>HELLO, DRUNK ISLANDS</small>
+        <h1>嗨，<span class="userName"></span></h1>
+        <p>蛙哥、貓哥、冠子さん正在三座島上集合…</p>
+    </div>
+
+    <div id="scene"></div>
+
+    <header>
+        <small>FUTURE SOON.</small>
+        <h1>DRUNK 酒肉檳友島</h1>
+        <p id="cityLine">三座島、三個酒肉檳友，一條縱貫線</p>
+    </header>
+
+    <nav id="islands" class="panel" aria-label="切換島嶼">
+        <button data-key="overview" class="active">🌏 全景</button>
+        <button data-key="taipei">🏙️ 台北天龍城</button>
+        <button data-key="changhua">🥟 彰化肉圓城</button>
+        <button data-key="kaohsiung">⚓ 高雄港城</button>
+    </nav>
+
+    <section id="card" class="panel">
+        <span class="tag"></span>
+        <h2 class="cardName"></h2>
+        <div class="home"></div>
+        <div class="title"></div>
+        <p class="motto"></p>
+        <div id="stats"></div>
+        <div class="skills"></div>
+        <p class="card-hint">點島上的角色，看他的資訊</p>
+    </section>
+
+    <aside id="log" class="panel">
+        <div class="head"><b>CITY LOG 城市日誌</b><span class="live">LIVE</span></div>
+        <ul id="logList"></ul>
+    </aside>
+
+    <div id="timeline" class="panel">
+        <button id="play" title="暫停／播放">❚❚</button>
+        <span id="clock">08:00</span>
+        <input id="time" type="range" min="0" max="24" step="0.01" value="8">
+    </div>
+
+    <a id="back" href="index.html"><span>⟵</span>回到開始畫面</a>
+
+    <script>
+      (() => {
+        // 三位酒肉檳友，以及各自的島（開始畫面的下拉選單選誰，就從誰的島開始）
+        const players = {
+          frog: { name: "蛙哥", home: "kaohsiung" },
+          cat: { name: "貓哥", home: "taipei" },
+          kanko: { name: "變態怪人冠子さん", home: "changhua" },
+        };
+        const requested = new URLSearchParams(location.search).get("player");
+        const playerKey = players[requested] ? requested : "frog";
+        const name = players[playerKey].name;
+
+        // 政策角色：每次進來隨機分配
+        const roles = [
+          { theme: "交通", title: "通勤領航員", color: "#3b82c4", icon: "🚲",
+            motto: "讓每一段通勤都準時又安心。", skills: ["公車路網優化", "自行車道串聯", "捷運轉乘整合"] },
+          { theme: "居住", title: "安居建築師", color: "#db6a41", icon: "🏠",
+            motto: "每個人都值得一個回得去的家。", skills: ["社宅擴建", "老屋更新", "租屋支持"] },
+          { theme: "環境", title: "綠蔭守護者", color: "#3fa66b", icon: "🌳",
+            motto: "把城市種回森林裡。", skills: ["街道綠化", "減碳行動", "河岸再生"] },
+          { theme: "照顧", title: "暖心照顧員", color: "#e3a131", icon: "🤝",
+            motto: "從托育到長照，一路有人陪。", skills: ["公共托育", "社區長照", "友善高齡"] },
+          { theme: "防災", title: "韌性工程師", color: "#7466cf", icon: "🛟",
+            motto: "準備好，城市就不怕。", skills: ["防災演練", "韌性社區", "即時預警"] },
+          { theme: "青年", title: "未來教練", color: "#d9578a", icon: "🎓",
+            motto: "讓年輕人在這裡起飛。", skills: ["青年創業", "職涯探索", "數位學習"] },
+          { theme: "夜市", title: "宵夜美食家", color: "#d64545", icon: "🍢",
+            motto: "宵夜，是城市的靈魂。", skills: ["夜市整頓", "攤商輔導", "美食地圖"] },
+          { theme: "廟口", title: "廟口說書人", color: "#8b5e3c", icon: "🏮",
+            motto: "把老故事說給新世代聽。", skills: ["古蹟活化", "廟會文化", "街頭藝術"] },
+          { theme: "運動", title: "全民運動員", color: "#20a39e", icon: "🏀",
+            motto: "每個街角都能流汗。", skills: ["運動中心", "河濱球場", "全民路跑"] },
+          { theme: "科技", title: "智慧城市駭客", color: "#343a8f", icon: "💻",
+            motto: "用程式讓城市變聰明。", skills: ["開放資料", "智慧路燈", "數位政府"] },
+          { theme: "毛孩", title: "毛孩守護者", color: "#8fa31e", icon: "🐾",
+            motto: "毛孩也是城市的一份子。", skills: ["動物收容", "寵物公園", "街貓 TNR"] },
+          { theme: "海洋", title: "海岸巡守員", color: "#1aa0c8", icon: "🌊",
+            motto: "讓海岸線永遠乾乾淨淨。", skills: ["淨灘行動", "漁港再生", "海洋教育"] },
+        ];
+        const randomInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+
+        // 每次按 START 進來：把六種角色洗牌，三位檳友各抽一種（不重複），能力值也重新隨機
+        const order = roles.map((_, i) => i);
+        for (let i = order.length - 1; i > 0; i--) {
+          const j = randomInt(0, i);
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+        const profiles = {};
+        Object.keys(players).forEach((key, k) => {
+          const stats = {};
+          for (const statName of ["行動力", "協作力", "創意力", "韌性"]) stats[statName] = randomInt(55, 100);
+          profiles[key] = { roleIndex: order[k], stats };
+        });
+        // 彰化政策格的「我的街區」跟著你選的角色走
+        const roleIndex = profiles[playerKey].roleIndex;
+
+        document.title = `${name}的 DRUNK 酒肉檳友島`;
+        document.querySelectorAll(".userName").forEach(el => { el.textContent = name; });
+
+        // 左下角的角色卡：一開始顯示你選的角色，點島上的角色就換成他的資訊
+        const HOME_TITLES = { kaohsiung: "⚓ 高雄港城", taipei: "🏙️ 台北天龍城", changhua: "🥟 彰化肉圓城" };
+        const card = document.getElementById("card");
+        const statsBox = document.getElementById("stats");
+        const skillsBox = card.querySelector(".skills");
+        function showCard(key) {
+          const player = players[key];
+          const { roleIndex: ri, stats } = profiles[key];
+          const role = roles[ri];
+          document.documentElement.style.setProperty("--role", role.color);
+          card.querySelector(".tag").textContent = `${role.icon} ${role.theme}街區`;
+          card.querySelector(".cardName").textContent = key === playerKey ? `★ ${player.name}` : player.name;
+          card.querySelector(".home").textContent = `來自${HOME_TITLES[player.home]}`;
+          card.querySelector(".title").textContent = role.title;
+          card.querySelector(".motto").textContent = `「${role.motto}」`;
+
+          statsBox.replaceChildren();
+          const fills = [];
+          for (const [statName, value] of Object.entries(stats)) {
+            const row = document.createElement("div");
+            row.className = "stat";
+            const label = document.createElement("span");
+            label.textContent = statName;
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            const fill = document.createElement("i");
+            fill.dataset.v = value;
+            bar.appendChild(fill);
+            const num = document.createElement("b");
+            num.textContent = value;
+            row.append(label, bar, num);
+            statsBox.appendChild(row);
+            fills.push(fill);
+          }
+          // 先讓瀏覽器排版出寬度 0 的長條，再設定寬度，長條才會有拉長的動畫
+          void statsBox.offsetWidth;
+          fills.forEach(f => { f.style.width = f.dataset.v + "%"; });
+
+          skillsBox.replaceChildren();
+          for (const skill of role.skills) {
+            const tag = document.createElement("span");
+            tag.textContent = skill;
+            skillsBox.appendChild(tag);
+          }
+          card.classList.remove("pop");
+          void card.offsetWidth; // 重新觸發彈一下的動畫
+          card.classList.add("pop");
+        }
+        showCard(playerKey);
+
+        window.ISLAND = { name, roleIndex, roles, players, playerKey, profiles, showCard };
+      })();
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+      const { name, roleIndex, roles, playerKey } = window.ISLAND;
+      const role = roles[roleIndex];
+      const container = document.getElementById("scene");
+
+      // ---------- 基本場景 ----------
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0xf6d9b8, 60, 140);
+
+      const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 1500);
+      camera.position.set(200, 140, 10);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      const labelRenderer = new CSS2DRenderer();
+      labelRenderer.setSize(innerWidth, innerHeight);
+      labelRenderer.domElement.style.cssText = "position:fixed;inset:0;pointer-events:none;";
+      container.appendChild(labelRenderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 0, 0);
+      controls.enableDamping = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.6;
+      controls.zoomSpeed = 3; // 滾輪縮放速度，預設 1，數字越大越快
+      controls.minDistance = 80;
+      controls.maxDistance = 420;
+      controls.maxPolarAngle = Math.PI * 0.47;
+
+      const hemi = new THREE.HemisphereLight(0xfff4e0, 0x8a6b52, 0.9);
+      scene.add(hemi);
+      const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      Object.assign(sun.shadow.camera, { left: -42, right: 42, top: 42, bottom: -42, far: 260 });
+      scene.add(sun, sun.target);
+
+      const timer = new THREE.Clock();
+      const mat = (color, opts = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true, ...opts });
+
+      // 兩點之間拉一根方柱（大橋桁架、起重機、手臂都用得到）
+      function beam(a, b, thick, material) {
+        const dir = new THREE.Vector3().subVectors(b, a);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(thick, dir.length(), thick), material);
+        m.position.copy(a).add(b).multiplyScalar(0.5);
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+        return m;
+      }
+
+      function addLabel(text, parent, y, className = "landmark") {
+        const div = document.createElement("div");
+        div.className = className;
+        div.textContent = text;
+        const label = new CSS2DObject(div);
+        label.position.y = y;
+        parent.add(label);
+        return label;
+      }
+
+      // 城市大樓共用的材質：依世界座標畫出窗格，晚上窗戶會亮（不管大樓多高，窗格大小都一樣）
+      const cityUniforms = { uNight: { value: 0 } };
+      function cityMaterial(opts = {}) {
+        const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.1, ...opts });
+        m.onBeforeCompile = shader => {
+          shader.uniforms.uNight = cityUniforms.uNight;
+          shader.vertexShader = "varying vec3 vCityPos;\nvarying vec3 vCityNormal;\n" + shader.vertexShader.replace(
+            "#include <project_vertex>",
+            `#include <project_vertex>
+            #ifdef USE_INSTANCING
+              mat4 cityModel = modelMatrix * instanceMatrix;
+            #else
+              mat4 cityModel = modelMatrix;
+            #endif
+            vCityPos = (cityModel * vec4(transformed, 1.0)).xyz;
+            vCityNormal = normalize(mat3(cityModel) * objectNormal);`
+          );
+          shader.fragmentShader = "uniform float uNight;\nvarying vec3 vCityPos;\nvarying vec3 vCityNormal;\n" + shader.fragmentShader.replace(
+            "#include <emissivemap_fragment>",
+            `#include <emissivemap_fragment>
+            float wall = 1.0 - step(0.5, abs(vCityNormal.y));
+            float across = abs(vCityNormal.x) > abs(vCityNormal.z) ? vCityPos.z : vCityPos.x;
+            vec2 cell = vec2(across * 1.6, vCityPos.y * 2.2);
+            vec2 f = fract(cell);
+            float win = step(0.18, f.x) * step(f.x, 0.78) * step(0.25, f.y) * step(f.y, 0.75) * wall;
+            float lit = step(0.35, fract(sin(dot(floor(cell), vec2(12.9898, 78.233))) * 43758.5453));
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.55 + vec3(0.05, 0.08, 0.12), win * 0.6);
+            totalEmissiveRadiance += vec3(1.0, 0.78, 0.45) * win * lit * uNight * 1.2;`
+          );
+        };
+        return m;
+      }
+
+      // ---------- 六角形島嶼的共用工具（頂點朝 ±x，和彰化的六角格排列方向一致） ----------
+      // 正六邊形（外接圓半徑 R）在角度 theta 方向的邊界距離；theta 用 atan2(z, x)
+      function hexRadius(theta, R) {
+        const seg = Math.PI / 3;
+        const a = (((theta % seg) + seg) % seg) - seg / 2;
+        return (R * Math.cos(Math.PI / 6)) / Math.cos(a);
+      }
+      const insideHex = (x, z, R) => Math.hypot(x, z) <= hexRadius(Math.atan2(z, x), R);
+      // 六角柱：頂面一個顏色、側面露出土層（像一塊厚厚的六角地磚）
+      function hexPrism(R, height, topColor, sideColor, taper = 1.03) {
+        const geo = new THREE.CylinderGeometry(R, R * taper, height, 6);
+        geo.rotateY(Math.PI / 6); // 圓柱預設頂點朝 ±z，轉 30 度改成朝 ±x
+        const top = mat(topColor);
+        const side = mat(sideColor);
+        const m = new THREE.Mesh(geo, [side, top, side]); // 圓柱的材質順序：側面、頂面、底面
+        m.receiveShadow = true;
+        return m;
+      }
+      // 六角形的浪花圈
+      function hexFoam(inner, outer) {
+        return new THREE.Mesh(
+          new THREE.RingGeometry(inner, outer, 6),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false })
+        );
+      }
+
+      // ---------- 海面（波光粼粼）：浪在頂點著色器裡算，海再大也不會拖慢 ----------
+      const SEA = 1400;
+      const seaTime = { value: 0 };
+      const waterGeo = new THREE.PlaneGeometry(SEA, SEA, 320, 320);
+      waterGeo.rotateX(-Math.PI / 2);
+      const water = new THREE.Mesh(waterGeo, mat(0x2ba3d6, { roughness: 0.25, metalness: 0, emissive: 0x0b3550 }));
+      water.material.onBeforeCompile = shader => {
+        shader.uniforms.uTime = seaTime;
+        shader.vertexShader = "uniform float uTime;\n" + shader.vertexShader.replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+          vec4 seaWorld = modelMatrix * vec4(transformed, 1.0);
+          transformed.y += sin(seaWorld.x * 0.25 + uTime) * 0.15 + cos(seaWorld.z * 0.3 + uTime * 0.8) * 0.15;`
+        );
+      };
+      water.position.y = -1.2;
+      water.receiveShadow = true;
+      scene.add(water);
+
+      // 海面上一閃一閃的光點，高度公式與海浪相同，才會貼著浪面
+      const SPARKS = 14000;
+      const sparkPos = new Float32Array(SPARKS * 3);
+      const sparkPhase = new Float32Array(SPARKS);
+      for (let i = 0; i < SPARKS; i++) {
+        sparkPos.set([(Math.random() - 0.5) * 520, 0, (Math.random() - 0.5) * 520], i * 3);
+        sparkPhase[i] = Math.random();
+      }
+      const sparkGeo = new THREE.BufferGeometry();
+      sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkPos, 3));
+      sparkGeo.setAttribute("aPhase", new THREE.BufferAttribute(sparkPhase, 1));
+      const sparkMat = new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 }, uDay: { value: 1 }, uScale: { value: renderer.getPixelRatio() } },
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        vertexShader: `
+          attribute float aPhase;
+          uniform float uTime;
+          uniform float uScale;
+          varying float vTwinkle;
+          void main() {
+            vec3 p = position;
+            p.y = -1.15 + sin(p.x * 0.25 + uTime) * 0.15 + cos(p.z * 0.3 + uTime * 0.8) * 0.15;
+            float speed = 1.2 + fract(aPhase * 7.0) * 2.5;
+            vTwinkle = pow(max(0.0, sin(uTime * speed + aPhase * 6.2831)), 10.0);
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            gl_PointSize = (2.0 + 22.0 * vTwinkle) * uScale * (60.0 / -mv.z);
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: `
+          uniform float uDay;
+          varying float vTwinkle;
+          void main() {
+            vec2 c = gl_PointCoord - 0.5;
+            float glow = pow(max(0.0, 1.0 - length(c) * 2.0), 3.0);
+            float star = max(0.0, 1.0 - abs(c.x) * 14.0) * max(0.0, 1.0 - abs(c.y) * 2.0)
+                       + max(0.0, 1.0 - abs(c.y) * 14.0) * max(0.0, 1.0 - abs(c.x) * 2.0);
+            float a = (glow + star * 0.7) * vTwinkle * mix(0.35, 1.0, uDay);
+            if (a < 0.01) discard;
+            vec3 col = mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.96, 0.82), uDay);
+            gl_FragColor = vec4(col * a, a);
+          }`,
+      });
+      scene.add(new THREE.Points(sparkGeo, sparkMat));
+
+      // ---------- 三座城市：各自寫在 js/cities/*.js ----------
+      // 位置大致照台灣地理：台北在北（-z）、彰化在中間、高雄在南（+z）
+      // 島和島之間（沙灘邊到沙灘邊）大約隔一座西螺大橋的長度（18）
+      const CITY_LAYOUT = [
+        { key: "taipei", pos: new THREE.Vector3(8, 0, -55) },
+        { key: "changhua", pos: new THREE.Vector3(0, 0, 0) },
+        { key: "kaohsiung", pos: new THREE.Vector3(-6, 0, 55) },
+      ];
+      const cities = {};
+      CITY_LAYOUT.forEach(({ key, pos }) => {
+        const build = window.HeartCities && window.HeartCities[key];
+        if (!build) {
+          console.error(`找不到城市 ${key}，請確認 js/cities/${key}.js 有正確載入`);
+          return;
+        }
+        const city = build({
+          THREE, mat, beam, addLabel, cityMaterial, roles, roleIndex, name,
+          hexRadius, insideHex, hexPrism, hexFoam,
+          rand: mulberry32(hashString(key)),
+        });
+        city.group.position.copy(pos);
+        city.group.userData.cityKey = key;
+        // 全景時顯示在島上方的大島名
+        addLabel(`${city.icon} ${city.title}`, city.group, 26, "island-name");
+        scene.add(city.group);
+        cities[key] = city;
+      });
+
+      // ---------- 縱貫線：一條公路從台北一路開到高雄，把三座島串起來 ----------
+      // 座標是世界座標：在島上貼著地面（y≈0.78），跨海時變成高架橋（y≈2）
+      // 在彰化沿著島的東北、東南海岸繞過去，會和西螺大橋的引道交會
+      const highway = new THREE.Group();
+      highway.userData.clickable = "highway";
+      const hwCurve = new THREE.CatmullRomCurve3([
+        [10, 0.78, -39.8], [10, 0.78, -37.9], [9.8, 1.9, -33.5], [9.2, 2.1, -27], [8.5, 1.9, -20.5],
+        [8.2, 0.78, -16.6], [8.2, 0.78, -14.8], [12.3, 0.78, -7.6], [16.6, 0.78, 0], [12.3, 0.78, 7.6],
+        [8.2, 0.78, 14.8], [8.2, 0.78, 16.6], [7, 1.9, 20.5], [4, 2.1, 27], [1.2, 1.9, 33.5],
+        [0, 0.78, 37.9], [0, 0.78, 43],
+      ].map(([x, y, z]) => new THREE.Vector3(x, y, z)), false, "centripetal");
+      const HW_N = 560;
+      const hwFrames = [];
+      for (let i = 0; i <= HW_N; i++) {
+        const p = hwCurve.getPointAt(i / HW_N);
+        const t = hwCurve.getTangentAt(i / HW_N);
+        // side 指向行進方向的右手邊
+        hwFrames.push({ p, t, side: new THREE.Vector3(-t.z, 0, t.x).normalize() });
+      }
+      // 沿著公路拉一條有厚度的帶子：offset 是離中心線的距離，lift 是抬高多少
+      function ribbon(offset, width, lift, thick, material, from = 0, to = HW_N) {
+        const pos = [];
+        const idx = [];
+        for (let i = from; i <= to; i++) {
+          const { p, side } = hwFrames[i];
+          const l = p.clone().addScaledVector(side, offset - width / 2);
+          const r = p.clone().addScaledVector(side, offset + width / 2);
+          pos.push(l.x, l.y + lift, l.z, r.x, r.y + lift, r.z, l.x, l.y + lift - thick, l.z, r.x, r.y + lift - thick, r.z);
+        }
+        for (let i = 0; i < to - from; i++) {
+          const a = i * 4;
+          const b = a + 4;
+          idx.push(a, a + 1, b, a + 1, b + 1, b);             // 頂面
+          idx.push(a, b, a + 2, b, b + 2, a + 2);             // 左側面
+          idx.push(a + 1, a + 3, b + 1, b + 1, a + 3, b + 3); // 右側面
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        const m = new THREE.Mesh(geo, material);
+        m.castShadow = true;
+        m.receiveShadow = true;
+        return m;
+      }
+      highway.add(ribbon(0, 1.8, 0.04, 0.35, mat(0x55585e)));
+      const lineWhite = mat(0xf4f4f2);
+      highway.add(ribbon(-0.78, 0.08, 0.05, 0.02, lineWhite), ribbon(0.78, 0.08, 0.05, 0.02, lineWhite));
+      // 黃色中線（虛線）
+      const dashIdx = [];
+      for (let i = 2; i < HW_N; i += 6) dashIdx.push(i);
+      const dashes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.02, 0.55), mat(0xf2c230), dashIdx.length);
+      const dummy = new THREE.Object3D();
+      dashIdx.forEach((i, k) => {
+        const { p, t } = hwFrames[i];
+        dummy.position.set(p.x, p.y + 0.06, p.z);
+        dummy.lookAt(p.x + t.x, p.y + 0.06, p.z + t.z);
+        dummy.updateMatrix();
+        dashes.setMatrixAt(k, dummy.matrix);
+      });
+      highway.add(dashes);
+      // 跨海的高架段：護欄＋橋墩
+      const railMat = mat(0xd9dcdf);
+      const pierMat = mat(0xb8b2a6);
+      let start = -1;
+      for (let i = 0; i <= HW_N; i++) {
+        const high = hwFrames[i].p.y > 1.2;
+        if (high && start < 0) start = i;
+        if ((!high || i === HW_N) && start >= 0) {
+          const end = high ? i : i - 1;
+          highway.add(ribbon(-0.95, 0.08, 0.42, 0.34, railMat, start, end), ribbon(0.95, 0.08, 0.42, 0.34, railMat, start, end));
+          for (let k = start + 4; k <= end - 4; k += 12) {
+            const { p, side } = hwFrames[k];
+            if (p.y < 1.6) continue;
+            for (const off of [-0.55, 0.55]) {
+              const h = p.y - 0.3 + 3;
+              const pier = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, h, 8), pierMat);
+              pier.position.set(p.x + side.x * off, p.y - 0.3 - h / 2, p.z + side.z * off);
+              pier.castShadow = true;
+              highway.add(pier);
+            }
+          }
+          start = -1;
+        }
+      }
+      // 路上的車：往高雄的走右側車道，往台北的走另一側
+      const carColors = [0xd8333a, 0x2f6fb5, 0xf2c230, 0xf4f4f2, 0x3fa66b, 0x26262a, 0xe98a2f];
+      const hwCars = [];
+      for (let k = 0; k < 12; k++) {
+        const car = new THREE.Group();
+        const paint = mat(carColors[k % carColors.length], { flatShading: false });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.24, 0.42), paint);
+        body.position.y = 0.2;
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.2, 0.38), mat(0x2b3a4a));
+        cabin.position.set(-0.05, 0.4, 0);
+        car.add(body, cabin);
+        car.traverse(o => { if (o.isMesh) o.castShadow = true; });
+        highway.add(car);
+        hwCars.push({ car, u: k / 12, dir: k % 2 ? 1 : -1, speed: 0.012 + Math.random() * 0.006 });
+      }
+      function updateHighway(dt) {
+        hwCars.forEach(c => {
+          c.u = (c.u + c.dir * c.speed * dt + 1) % 1;
+          const p = hwCurve.getPointAt(c.u);
+          const t = hwCurve.getTangentAt(c.u);
+          const side = new THREE.Vector3(-t.z, 0, t.x).normalize();
+          c.car.position.set(p.x + side.x * 0.42 * c.dir, p.y + 0.04, p.z + side.z * 0.42 * c.dir);
+          c.car.rotation.y = Math.atan2(-t.z * c.dir, t.x * c.dir);
+        });
+      }
+      scene.add(highway);
+      [0.18, 0.82].forEach(u => {
+        const anchor = new THREE.Object3D();
+        anchor.position.copy(hwCurve.getPointAt(u));
+        highway.add(anchor);
+        addLabel("台 1 線・縱貫公路", anchor, 2.2);
+      });
+
+
+      // ---------- 三位酒肉檳友：蛙哥（高雄）、貓哥（台北）、變態怪人冠子さん（彰化） ----------
+      // 共用一副骨架：外層 root 負責位置與面向，內層 body 負責蹦跳；腳底在 y = 0，頭的中心在 y = 2.75
+      const smooth = (color, opts = {}) => mat(color, { flatShading: false, roughness: 0.7, ...opts });
+      const torsoGeo = new THREE.CylinderGeometry(0.52, 0.6, 0.85, 32, 1, false, -Math.PI / 2, Math.PI * 2);
+      const dark = smooth(0x2b211c);
+      const white = smooth(0xffffff);
+      const blushMat = new THREE.MeshBasicMaterial({ color: 0xf2a08a });
+
+      // 夏威夷花襯衫的布料（圓柱的 u=0.25 在正面）
+      function alohaTexture() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1024;
+        canvas.height = 220;
+        const c = canvas.getContext("2d");
+        c.fillStyle = "#2f8fd8";
+        c.fillRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < 46; i++) {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * canvas.height;
+          c.fillStyle = "#3fae5a";
+          c.beginPath();
+          c.ellipse(x + 14, y + 8, 18, 7, 0.6, 0, Math.PI * 2);
+          c.fill();
+          c.fillStyle = Math.random() < 0.5 ? "#ffffff" : "#ff8fb8";
+          for (let p = 0; p < 5; p++) {
+            const a = (p / 5) * Math.PI * 2;
+            c.beginPath();
+            c.arc(x + Math.cos(a) * 9, y + Math.sin(a) * 9, 7, 0, Math.PI * 2);
+            c.fill();
+          }
+          c.fillStyle = "#f2c230";
+          c.beginPath();
+          c.arc(x, y, 5, 0, Math.PI * 2);
+          c.fill();
+        }
+        // 正面一排扣子
+        c.fillStyle = "#ffffff";
+        for (let y = 30; y < canvas.height; y += 50) {
+          c.beginPath();
+          c.arc(canvas.width / 4, y, 6, 0, Math.PI * 2);
+          c.fill();
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+
+      function makeBuddy(def) {
+        const root = new THREE.Group();
+        const body = new THREE.Group();
+        root.add(body);
+        root.scale.setScalar(0.7);
+        root.userData.clickable = "buddy";
+        root.userData.buddyKey = def.key;
+        const skin = smooth(def.skin);
+
+        // 上衣、褲子
+        const torso = new THREE.Mesh(torsoGeo, def.torsoMat);
+        torso.position.y = 1.62;
+        const shorts = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.66, 0.42, 24), def.pantsMat);
+        shorts.position.y = 1.02;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.85, 28, 20), def.headMat || skin);
+        head.position.y = 2.75;
+        body.add(torso, shorts, head);
+
+        // 腳：以髖關節為支點擺動
+        const legs = [-0.25, 0.25].map(x => {
+          const pivot = new THREE.Group();
+          pivot.position.set(x, 0.82, 0);
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.62, 12), def.legMat || skin);
+          leg.position.y = -0.36;
+          pivot.add(leg);
+          if (def.feet === "slippers") {
+            // 藍白拖
+            const sole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.48), white);
+            sole.position.set(0, -0.76, 0.06);
+            const strap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.14), smooth(0x2f5fd0));
+            strap.position.set(0, -0.7, 0.14);
+            const toes = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), skin);
+            toes.scale.set(1.1, 0.5, 1.3);
+            toes.position.set(0, -0.7, 0.18);
+            pivot.add(sole, strap, toes);
+          } else {
+            const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.18, 0.42), smooth(def.shoeColor || 0x2c2c30));
+            shoe.position.set(0, -0.73, 0.06);
+            pivot.add(shoe);
+          }
+          body.add(pivot);
+          return pivot;
+        });
+
+        // 手：以肩膀為支點擺動；袖子分成無袖、短袖、長袖
+        const arms = [-1, 1].map(side => {
+          const pivot = new THREE.Group();
+          pivot.position.set(side * 0.6, 1.95, 0);
+          pivot.rotation.z = side * 0.18;
+          if (def.sleeves === "long") {
+            const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.14, 0.78, 14), def.sleeveMat);
+            sleeve.position.y = -0.39;
+            pivot.add(sleeve);
+          } else {
+            if (def.sleeves === "short") {
+              const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.21, 0.34, 14), def.sleeveMat);
+              sleeve.position.y = -0.14;
+              pivot.add(sleeve);
+            }
+            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, def.sleeves === "short" ? 0.45 : 0.75, 10), skin);
+            arm.position.y = def.sleeves === "short" ? -0.55 : -0.42;
+            pivot.add(arm);
+          }
+          const hand = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), skin);
+          hand.position.y = -0.86;
+          pivot.add(hand);
+          body.add(pivot);
+          return pivot;
+        });
+
+        // 腮紅
+        [-1, 1].forEach(side => {
+          const blush = new THREE.Mesh(new THREE.CircleGeometry(0.13, 16), blushMat);
+          blush.position.set(side * 0.55, 2.62, 0.66);
+          blush.lookAt(side * 1.65, 2.62, 3);
+          body.add(blush);
+        });
+
+        const parts = { root, body, head, legs, arms, skin };
+        def.build(parts);
+        root.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
+
+        // 名牌
+        const plate = document.createElement("div");
+        plate.className = "nameplate buddy-tag";
+        plate.style.borderColor = def.color;
+        plate.textContent = def.name;
+        const em = document.createElement("em");
+        em.style.color = def.color;
+        em.textContent = def.tagline;
+        plate.appendChild(em);
+        const plateObj = new CSS2DObject(plate);
+        plateObj.position.set(0, def.plateY || 4.6, 0);
+        root.add(plateObj);
+
+        scene.add(root);
+        return { def, ...parts, plate };
+      }
+
+      const BUDDY_DEFS = {
+        frog: {
+          key: "frog",
+          tagline: "高雄 🐸",
+          color: "#3fa66b",
+          skin: 0x7cc46a,
+          // 白色汗衫＋藍色海灘褲＋藍白拖，台味十足
+          torsoMat: smooth(0xf7f7f2),
+          pantsMat: smooth(0x2f6fb5),
+          sleeves: "none",
+          feet: "slippers",
+          build({ body, arms, skin }) {
+            // 頭頂兩顆鼓鼓的青蛙眼
+            [-1, 1].forEach(side => {
+              const bulge = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 14), skin);
+              bulge.position.set(side * 0.38, 3.42, 0.22);
+              const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.25, 18, 12), white);
+              eyeWhite.position.set(side * 0.4, 3.48, 0.42);
+              const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), dark);
+              pupil.position.set(side * 0.4, 3.5, 0.63);
+              const shine = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), white);
+              shine.position.set(side * 0.4 + 0.04, 3.55, 0.73);
+              body.add(bulge, eyeWhite, pupil, shine);
+            });
+            // 大大的青蛙嘴
+            const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.035, 8, 24, Math.PI), dark);
+            mouth.position.set(0, 2.62, 0.78);
+            mouth.rotation.z = Math.PI;
+            body.add(mouth);
+            // 汗衫的肩帶
+            [-1, 1].forEach(side => {
+              const strap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.3, 0.9), smooth(0xf7f7f2));
+              strap.position.set(side * 0.38, 2.02, 0);
+              body.add(strap);
+            });
+            // 手上一顆檳榔
+            const nut = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), smooth(0x5f9a3a));
+            nut.scale.set(1, 1.4, 1);
+            nut.position.set(0, -0.98, 0.08);
+            arms[1].add(nut);
+          },
+        },
+        cat: {
+          key: "cat",
+          tagline: "台北 🐱",
+          color: "#e98a2f",
+          skin: 0xf2a14a,
+          // 夏威夷花襯衫＋卡其短褲
+          torsoMat: [new THREE.MeshStandardMaterial({ map: alohaTexture(), roughness: 0.8 }), smooth(0x2f8fd8), smooth(0x2f8fd8)],
+          pantsMat: smooth(0xc9b48a),
+          sleeves: "short",
+          sleeveMat: smooth(0x2f8fd8),
+          feet: "slippers",
+          build({ body, head, arms, skin }) {
+            // 貓耳朵（外橘內粉）
+            [-1, 1].forEach(side => {
+              const ear = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.5, 4), skin);
+              ear.position.set(side * 0.5, 3.48, 0);
+              ear.rotation.z = -side * 0.35;
+              const inner = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 4), smooth(0xffb3c6));
+              inner.position.set(side * 0.48, 3.44, 0.1);
+              inner.rotation.z = -side * 0.35;
+              body.add(ear, inner);
+              // 眼睛
+              const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12), dark);
+              eye.scale.set(1, 1.3, 0.55);
+              eye.position.set(side * 0.3, 2.85, 0.76);
+              const shine = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), white);
+              shine.position.set(side * 0.3 + 0.04, 2.92, 0.84);
+              body.add(eye, shine);
+              // 鬍鬚
+              for (const tilt of [-0.15, 0.12]) {
+                const whisker = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.6, 4), dark);
+                whisker.position.set(side * 0.68, 2.62 + tilt * 0.6, 0.6);
+                whisker.rotation.set(0, 0, Math.PI / 2 + tilt * side);
+                body.add(whisker);
+              }
+            });
+            // 額頭的虎斑紋
+            for (let k = -1; k <= 1; k++) {
+              const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.28, 0.06), smooth(0xc8742a));
+              stripe.position.set(k * 0.18, 3.32, 0.62);
+              stripe.rotation.x = -0.6;
+              body.add(stripe);
+            }
+            // 粉紅鼻子＋ω 嘴
+            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), smooth(0xff8fa8));
+            nose.position.set(0, 2.68, 0.85);
+            body.add(nose);
+            [-1, 1].forEach(side => {
+              const m = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.022, 6, 12, Math.PI), dark);
+              m.position.set(side * 0.07, 2.58, 0.83);
+              m.rotation.z = Math.PI;
+              body.add(m);
+            });
+            // 會甩的尾巴
+            const tail = new THREE.Group();
+            tail.position.set(0, 1.15, -0.6);
+            for (let k = 0; k < 7; k++) {
+              const seg = new THREE.Mesh(new THREE.SphereGeometry(0.13 - k * 0.008, 10, 8), skin);
+              seg.position.set(0, k * 0.16, -k * 0.08 + (k * k) * 0.012);
+              tail.add(seg);
+            }
+            body.add(tail);
+            body.userData.tail = tail;
+            // 手上一串魚乾
+            const fish = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.36, 6), smooth(0xb9b0a0));
+            fish.rotation.z = Math.PI / 2;
+            fish.position.set(0, -1.0, 0.1);
+            arms[0].add(fish);
+          },
+        },
+        kanko: {
+          key: "kanko",
+          tagline: "彰化 👑",
+          color: "#b5398f",
+          plateY: 5.0,
+          skin: 0xffe0c4,
+          // 卡其色長風衣＋深色長褲：經典的「怪人」造型
+          torsoMat: smooth(0xc8a874),
+          pantsMat: smooth(0xc8a874),
+          legMat: smooth(0x3b3b44),
+          sleeves: "long",
+          sleeveMat: smooth(0xc8a874),
+          feet: "shoes",
+          shoeColor: 0x1b1b1f,
+          build({ body, arms }) {
+            const coat = smooth(0xc8a874);
+            // 風衣下襬一路蓋到膝蓋、腰帶、立起來的領子
+            const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.76, 0.6, 24, 1, true), coat);
+            hem.material.side = THREE.DoubleSide;
+            hem.position.y = 0.6;
+            const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.63, 0.1, 24), smooth(0x6b4a2a));
+            belt.position.y = 1.25;
+            const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.3, 20, 1, true), coat);
+            collar.material.side = THREE.DoubleSide;
+            collar.position.y = 2.12;
+            body.add(hem, belt, collar);
+            // 墨鏡
+            const glassesMat = smooth(0x111114, { roughness: 0.2, metalness: 0.4 });
+            [-1, 1].forEach(side => {
+              const lens = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.06), glassesMat);
+              lens.position.set(side * 0.27, 2.86, 0.8);
+              body.add(lens);
+              // 往上翹的八字鬍
+              const stache = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.04, 8, 16, Math.PI * 1.2), dark);
+              stache.position.set(side * 0.13, 2.56, 0.84);
+              stache.rotation.z = side > 0 ? Math.PI * 1.05 : -Math.PI * 0.25;
+              body.add(stache);
+            });
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.04), glassesMat);
+            bridge.position.set(0, 2.9, 0.82);
+            body.add(bridge);
+            // 頭頂一頂金色小皇冠（名字裡的「冠」）
+            const gold = smooth(0xf2c230, { metalness: 0.6, roughness: 0.3 });
+            const crown = new THREE.Group();
+            crown.position.y = 3.5;
+            const band = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.22, 20, 1, true), gold);
+            band.material.side = THREE.DoubleSide;
+            crown.add(band);
+            for (let k = 0; k < 5; k++) {
+              const a = (k / 5) * Math.PI * 2;
+              const spike = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 4), gold);
+              spike.position.set(Math.cos(a) * 0.4, 0.22, Math.sin(a) * 0.4);
+              const gem = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), smooth(0xd8333a));
+              gem.position.set(Math.cos(a) * 0.42, 0.02, Math.sin(a) * 0.42);
+              crown.add(spike, gem);
+            }
+            body.add(crown);
+            // 手上一朵紅玫瑰
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.5, 5), smooth(0x3f8a3c));
+            stem.position.set(0, -0.95, 0.15);
+            stem.rotation.x = 0.6;
+            const rose = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), smooth(0xd8233a));
+            rose.position.set(0, -0.78, 0.3);
+            arms[1].add(stem, rose);
+          },
+        },
+      };
+      Object.values(BUDDY_DEFS).forEach(d => { d.name = window.ISLAND.players[d.key].name; d.home = window.ISLAND.players[d.key].home; });
+
+      // ---------- 帽子：你選的角色每次登入隨機換一頂（冠子さん已經有皇冠就不戴） ----------
+      // 帽子的原點在頭部中心（頭半徑 0.85）
+      const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+      const hatMat = color => mat(color, { flatShading: false, roughness: 0.8 });
+      const halfDome = (r, color) => new THREE.Mesh(new THREE.SphereGeometry(r, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), hatMat(color));
+      const at = (mesh, x, y, z) => { mesh.position.set(x, y, z); return mesh; };
+
+      const HATS = [
+        {
+          name: "棒球帽",
+          build(g) {
+            const color = pick(["#d8333a", "#2f6fb5", "#1d1d21", "#ffffff", "#2fbf6e"]);
+            const crown = at(halfDome(0.95, color), 0, 0.22, 0);
+            crown.scale.y = 0.85;
+            const brim = at(new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.05, 24, 1, false, -Math.PI / 2, Math.PI), hatMat(color)), 0, 0.26, 0.72);
+            brim.rotation.x = 0.12;
+            const button = at(new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), hatMat(color)), 0, 1.02, 0);
+            const logo = at(new THREE.Mesh(new THREE.CircleGeometry(0.16, 20), new THREE.MeshBasicMaterial({ color: 0xffffff })), 0, 0.62, 0.79);
+            logo.rotation.x = -0.55;
+            if (color === "#ffffff") logo.material.color.set("#5b4fc8");
+            g.add(crown, brim, button, logo);
+          },
+        },
+        {
+          name: "貝雷帽",
+          build(g) {
+            const color = pick(["#9b1d2e", "#1d1d21", "#3d338f", "#c4572f"]);
+            const top = at(new THREE.Mesh(new THREE.SphereGeometry(1, 28, 16), hatMat(color)), 0.12, 0.66, -0.05);
+            top.scale.set(1.08, 0.32, 1.05);
+            const band = at(new THREE.Mesh(new THREE.TorusGeometry(0.84, 0.06, 8, 32), hatMat(color)), 0, 0.5, 0);
+            band.rotation.x = Math.PI / 2;
+            const stem = at(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.14, 8), hatMat(color)), 0.12, 0.98, -0.05);
+            g.add(top, band, stem);
+            g.rotation.z = -0.2;
+          },
+        },
+        {
+          name: "畫家帽",
+          build(g) {
+            const color = pick(["#b08a5b", "#6b5a4a", "#8a8f99", "#3f5a3c"]);
+            // 八片拼接的蓬鬆帽頂
+            const crown = at(new THREE.Mesh(new THREE.SphereGeometry(1, 8, 10), mat(color, { roughness: 0.95 })), 0, 0.55, -0.04);
+            crown.scale.set(1.04, 0.5, 1.1);
+            const band = at(new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.16, 28, 1, true), hatMat(color)), 0, 0.42, 0);
+            band.material.side = THREE.DoubleSide;
+            const brim = at(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 20, 1, false, -Math.PI / 2, Math.PI), hatMat(color)), 0, 0.36, 0.76);
+            brim.rotation.x = 0.3;
+            const button = at(new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), hatMat(color)), 0, 1.04, -0.04);
+            g.add(crown, band, brim, button);
+          },
+        },
+        {
+          name: "斗笠",
+          build(g) {
+            const straw = 0xd9b878;
+            const cone = at(new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.95, 32, 1, true), mat(straw, { side: THREE.DoubleSide })), 0, 0.92, 0);
+            g.add(cone);
+            // 一圈圈竹編紋路
+            [0.5, 0.95, 1.4, 1.86].forEach(r => {
+              const ring = at(new THREE.Mesh(new THREE.TorusGeometry(r, 0.025, 6, 40), mat(0xa8844a)), 0, 1.395 - (r / 1.9) * 0.95, 0);
+              ring.rotation.x = Math.PI / 2;
+              g.add(ring);
+            });
+            const tip = at(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat(0xa8844a)), 0, 1.4, 0);
+            g.add(tip);
+          },
+        },
+        {
+          name: "漁夫帽",
+          build(g) {
+            const color = pick(["#e9dfc7", "#7a8f5a", "#2f6fb5", "#f2b8c6"]);
+            const crown = at(new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.9, 0.5, 28), hatMat(color)), 0, 0.68, 0);
+            const top = at(new THREE.Mesh(new THREE.SphereGeometry(0.72, 28, 10, 0, Math.PI * 2, 0, Math.PI / 2), hatMat(color)), 0, 0.92, 0);
+            top.scale.y = 0.25;
+            const brim = at(new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.32, 0.28, 28, 1, true), hatMat(color)), 0, 0.3, 0);
+            brim.material.side = THREE.DoubleSide;
+            g.add(crown, top, brim);
+          },
+        },
+        {
+          name: "草帽",
+          build(g) {
+            const straw = 0xe8cf8c;
+            const crown = at(new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.86, 0.5, 28), mat(straw)), 0, 0.72, 0);
+            const top = at(new THREE.Mesh(new THREE.SphereGeometry(0.74, 28, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(straw)), 0, 0.97, 0);
+            top.scale.y = 0.3;
+            const brim = at(new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.05, 36), mat(straw)), 0, 0.48, 0);
+            const ribbon = at(new THREE.Mesh(new THREE.CylinderGeometry(0.83, 0.87, 0.14, 28), hatMat(pick(["#d8333a", "#3d338f", "#2fbf6e"]))), 0, 0.58, 0);
+            g.add(crown, top, brim, ribbon);
+          },
+        },
+        {
+          name: "毛線帽",
+          build(g) {
+            const color = pick(["#e05a87", "#f2b134", "#5b4fc8", "#2fbf6e", "#d8333a"]);
+            const knit = at(halfDome(0.95, color), 0, 0.22, 0);
+            knit.scale.y = 0.95;
+            const cuff = at(new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.12, 10, 32), hatMat(color)), 0, 0.26, 0);
+            cuff.rotation.x = Math.PI / 2;
+            const pompom = at(new THREE.Mesh(new THREE.IcosahedronGeometry(0.26, 1), mat(0xffffff)), 0, 1.18, 0);
+            g.add(knit, cuff, pompom);
+          },
+        },
+        {
+          name: "學士帽",
+          build(g) {
+            const base = at(new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.86, 0.4, 24), hatMat("#1d1d21")), 0, 0.62, 0);
+            const board = at(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), hatMat("#1d1d21")), 0, 0.86, 0);
+            board.rotation.y = Math.PI / 4;
+            const button = at(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), hatMat("#f2b134")), 0, 0.92, 0);
+            const cord = beam(new THREE.Vector3(0, 0.92, 0), new THREE.Vector3(1.08, 0.88, 1.08), 0.03, hatMat("#f2b134"));
+            const tassel = at(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.09, 0.4, 8), hatMat("#f2b134")), 1.08, 0.66, 1.08);
+            g.add(base, board, button, cord, tassel);
+          },
+        },
+      ];
+
+      // 隨機選一頂，盡量跟上次登入不一樣（localStorage 不能用時就純隨機）
+      let lastHat = -1;
+      try { lastHat = parseInt(localStorage.getItem("heartIslandHat") ?? "-1", 10); } catch (e) { /* 無痕模式等情況 */ }
+      let hatIndex = Math.floor(Math.random() * HATS.length);
+      if (hatIndex === lastHat) hatIndex = (hatIndex + 1 + Math.floor(Math.random() * (HATS.length - 1))) % HATS.length;
+      try { localStorage.setItem("heartIslandHat", String(hatIndex)); } catch (e) { /* 忽略 */ }
+
+      const buddies = Object.values(BUDDY_DEFS).map(makeBuddy);
+      // 點角色本體或頭上的名牌都一樣：換角色卡、說一句話、鏡頭飛到他現在所在的島
+      function selectBuddy(b) {
+        window.ISLAND.showCard(b.def.key);
+        log(buddyLine(b));
+        let cityKey = walkNodes[b.walk.node].city;
+        // 走在縱貫線上時，飛到離他最近的那座島
+        if (cityKey === "highway") {
+          cityKey = Object.values(cities).reduce((best, c) =>
+            c.group.position.distanceTo(b.root.position) < best.group.position.distanceTo(b.root.position) ? c : best).key;
+        }
+        if (cityKey !== focusKey && travel.t >= 1) focusOn(cityKey);
+      }
+      buddies.forEach(b => b.plate.addEventListener("click", () => selectBuddy(b)));
+      const player = buddies.find(b => b.def.key === playerKey);
+      // 你選的那位，名牌多一顆星
+      player.plate.firstChild.textContent = `★ ${player.def.name}`;
+      const hat = new THREE.Group();
+      hat.position.y = 2.75;
+      if (playerKey !== "kanko") {
+        HATS[hatIndex].build(hat);
+        player.body.add(hat);
+        hat.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      }
+
+      // ---------- 走路網：三座島各自的路網，再用縱貫線串起來 ----------
+      // 每個節點：世界座標 p、屬於哪座城（或 "highway"）、相鄰節點
+      const walkNodes = [];
+      const addWalkNode = (p, city) => { walkNodes.push({ p, city, next: new Set() }); return walkNodes.length - 1; };
+      const linkWalk = (a, b) => { walkNodes[a].next.add(b); walkNodes[b].next.add(a); };
+      const cityGates = {};
+      const cityNodes = {};
+      Object.values(cities).forEach(c => {
+        const base = walkNodes.length;
+        c.walk.nodes.forEach(p => addWalkNode(p.clone().add(c.group.position), c.key));
+        c.walk.edges.forEach(([a, b]) => linkWalk(base + a, base + b));
+        cityGates[c.key] = base + c.walk.gate;
+        cityNodes[c.key] = c.walk.nodes.map((_, i) => base + i);
+      });
+      // 縱貫線每隔幾個取樣點放一個節點，走在黃線上（兩邊車道的中間）
+      const highwayNodes = [];
+      for (let i = 0; i <= HW_N; i += 4) highwayNodes.push(addWalkNode(hwFrames[i].p.clone().setY(hwFrames[i].p.y + 0.05), "highway"));
+      for (let k = 0; k < highwayNodes.length - 1; k++) linkWalk(highwayNodes[k], highwayNodes[k + 1]);
+      Object.values(cityGates).forEach(g => {
+        let best = highwayNodes[0];
+        highwayNodes.forEach(h => { if (walkNodes[h].p.distanceTo(walkNodes[g].p) < walkNodes[best].p.distanceTo(walkNodes[g].p)) best = h; });
+        linkWalk(g, best);
+      });
+
+      function walkPath(from, to) {
+        const prev = new Map([[from, -1]]);
+        const queue = [from];
+        while (queue.length) {
+          const cur = queue.shift();
+          if (cur === to) break;
+          walkNodes[cur].next.forEach(n => { if (!prev.has(n)) { prev.set(n, cur); queue.push(n); } });
+        }
+        if (!prev.has(to)) return [from];
+        const path = [];
+        for (let cur = to; cur !== -1; cur = prev.get(cur)) path.unshift(cur);
+        return path;
+      }
+
+      const pickFrom = arr => arr[Math.floor(Math.random() * arr.length)];
+      const whereIs = b => {
+        const city = walkNodes[b.walk.node].city;
+        return city === "highway" ? "縱貫線上" : cities[city].title;
+      };
+      // 規劃下一趟：大部分在現在這座島上閒晃，偶爾沿著縱貫線跑去別的島
+      function planTrip(b) {
+        const w = b.walk;
+        const here = walkNodes[w.node].city === "highway" ? w.lastCity : walkNodes[w.node].city;
+        let dest;
+        if (Math.random() < 0.28) {
+          const other = pickFrom(Object.keys(cityNodes).filter(k => k !== here));
+          dest = pickFrom(cityNodes[other]);
+          log(`${b.def.name} 沿著台 1 線出發，要去${cities[other].title}走跳！`);
+        } else {
+          dest = pickFrom(cityNodes[here]);
+        }
+        w.path = walkPath(w.node, dest);
+        w.seg = 0;
+        w.along = 0;
+      }
+
+      buddies.forEach(b => {
+        const start = pickFrom(cityNodes[b.def.home]);
+        b.walk = { node: start, lastCity: b.def.home, path: [start], seg: 0, along: 0, pause: 1 + Math.random() * 2, hop: Math.random() * 6 };
+        b.root.position.copy(walkNodes[start].p);
+      });
+
+      function updateBuddy(b, dt, t) {
+        const w = b.walk;
+        const tail = b.body.userData.tail;
+        if (tail) tail.rotation.z = Math.sin(t * 3 + w.hop) * 0.5;
+        if (w.pause > 0) {
+          // 停下來時原地輕輕晃
+          w.pause -= dt;
+          b.body.position.y = 0;
+          b.body.rotation.z = Math.sin(t * 3) * 0.05;
+          b.legs.forEach(l => { l.rotation.x = 0; });
+          b.arms.forEach(a => { a.rotation.x = 0; });
+          if (w.pause <= 0) planTrip(b);
+          return;
+        }
+        b.body.rotation.z = 0;
+        const from = walkNodes[w.path[w.seg]];
+        const to = walkNodes[w.path[w.seg + 1]];
+        if (!to) {
+          w.pause = 1.5 + Math.random() * 2.5;
+          return;
+        }
+        // 在縱貫線上走快一點
+        const speed = from.city === "highway" || to.city === "highway" ? 3.4 : 1.7;
+        const len = Math.max(from.p.distanceTo(to.p), 0.001);
+        w.along += (speed * dt) / len;
+        if (w.along >= 1) {
+          w.seg += 1;
+          w.along = 0;
+          w.node = w.path[w.seg];
+          const city = walkNodes[w.node].city;
+          if (city !== "highway" && city !== w.lastCity) {
+            w.lastCity = city;
+            log(`${b.def.name} 抵達${cities[city].title}！`);
+          }
+          return;
+        }
+        b.root.position.lerpVectors(from.p, to.p, w.along);
+        const heading = Math.atan2(to.p.x - from.p.x, to.p.z - from.p.z);
+        let diff = heading - b.root.rotation.y;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        b.root.rotation.y += diff * Math.min(1, dt * 10);
+        // 蹦蹦跳跳：每一步都小跳一下
+        w.hop += dt * 9;
+        b.body.position.y = Math.abs(Math.sin(w.hop)) * 0.45;
+        b.legs.forEach((l, i) => { l.rotation.x = Math.sin(w.hop + i * Math.PI) * 0.6; });
+        b.arms.forEach((a, i) => { a.rotation.x = Math.sin(w.hop + i * Math.PI) * 0.8; });
+      }
+
+      const BUDDY_LINES = {
+        frog: [
+          b => `${b.def.name} 在${whereIs(b)}嚼了一顆檳榔，呱！`,
+          b => `${b.def.name}：「高雄的海風最對味啦！」`,
+          b => `${b.def.name} 穿著藍白拖在${whereIs(b)}啪噠啪噠地跳。`,
+        ],
+        cat: [
+          b => `${b.def.name} 在${whereIs(b)}伸了個懶腰：「喵～」`,
+          b => `${b.def.name}：「天龍城的魚乾最高級。」`,
+          b => `${b.def.name} 甩著尾巴，在${whereIs(b)}找地方曬太陽。`,
+        ],
+        kanko: [
+          b => `${b.def.name} 推了推墨鏡，在${whereIs(b)}神祕地笑了一下。`,
+          b => `${b.def.name}：「呵呵呵，今天的皇冠也很閃亮呢。」`,
+          b => `${b.def.name} 在${whereIs(b)}把風衣一甩，遞出一朵玫瑰。`,
+        ],
+      };
+      const buddyLine = b => pickFrom(BUDDY_LINES[b.def.key])(b);
+
+      // ---------- 雲：散布在整個群島上空 ----------
+      // 高面數圓球＋平滑著色，微微自發光讓底部不會太暗，看起來像棉花糖
+      const clouds = [];
+      const puffGeo = new THREE.SphereGeometry(1, 32, 20);
+      const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.25 });
+      for (let i = 0; i < 18; i++) {
+        const cloud = new THREE.Group();
+        // 中間的球最大、往兩側越來越小，形成圓頂的雲
+        const puffs = 5 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < puffs; j++) {
+          const u = (j / (puffs - 1)) * 2 - 1;
+          const size = (1.25 - Math.abs(u) * 0.55) * (0.9 + Math.random() * 0.2);
+          const puff = new THREE.Mesh(puffGeo, cloudMat);
+          puff.scale.setScalar(size);
+          puff.position.set(u * 2.4, size * 0.35 + Math.random() * 0.15, (Math.random() - 0.5) * 0.7);
+          cloud.add(puff);
+        }
+        // 壓扁的底座讓雲的下緣平整
+        const base = new THREE.Mesh(puffGeo, cloudMat);
+        base.scale.set(2.9, 0.55, 1.1);
+        cloud.add(base);
+        cloud.scale.setScalar(0.9 + Math.random() * 0.8);
+        cloud.position.set(Math.random() * 240 - 120, 14 + Math.random() * 10, Math.random() * 300 - 150);
+        cloud.userData.speed = 0.6 + Math.random() * 0.8;
+        scene.add(cloud);
+        clouds.push(cloud);
+      }
+
+      // ---------- 天空的粉紅鯨魚 ----------
+      // 外層 whale 負責繞島飛行與面向（頭朝 +z），內層 whaleBody 負責上下浮動與搖擺
+      const whale = new THREE.Group();
+      whale.userData.clickable = "whale";
+      scene.add(whale);
+      const whaleBody = new THREE.Group();
+      whale.add(whaleBody);
+      const whaleDark = mat(0x3a2430, { flatShading: false });
+      const whaleSkin = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 });
+      const whalePinkColor = new THREE.Color(0xf4a6c6);
+      const whaleBellyColor = new THREE.Color(0xffe6f0);
+      // 身體橫切面稍微壓扁：寬 1.1、高 0.9
+      const WHALE_SX = 1.1;
+      const WHALE_SY = 0.9;
+
+      // 流線輪廓（半徑, z），由尾到頭：頭圓、最胖處在前段、往尾巴一路收細
+      const bodyProfile = new THREE.SplineCurve([
+        new THREE.Vector2(0.62, -1.8), new THREE.Vector2(0.92, -1.15), new THREE.Vector2(1.16, -0.35),
+        new THREE.Vector2(1.28, 0.45), new THREE.Vector2(1.24, 1.15), new THREE.Vector2(1.05, 1.8),
+        new THREE.Vector2(0.72, 2.3), new THREE.Vector2(0.32, 2.58), new THREE.Vector2(0.0, 2.66),
+      ]).getPoints(48);
+      const tailProfile = new THREE.SplineCurve([
+        new THREE.Vector2(0.0, -1.62), new THREE.Vector2(0.2, -1.5), new THREE.Vector2(0.3, -1.2),
+        new THREE.Vector2(0.45, -0.6), new THREE.Vector2(0.63, 0.0), new THREE.Vector2(0.6, 0.12),
+      ]).getPoints(24);
+
+      // 把輪廓旋轉成形，再依高度上色：上面粉紅、肚子漸層成淺粉
+      function whaleLathe(profile) {
+        const geo = new THREE.LatheGeometry(profile, 40);
+        geo.rotateX(Math.PI / 2); // 旋轉軸從 y 轉到 z，頭朝 +z
+        geo.scale(WHALE_SX, WHALE_SY, 1);
+        geo.computeVertexNormals();
+        const pos = geo.attributes.position;
+        const colors = new Float32Array(pos.count * 3);
+        const c = new THREE.Color();
+        for (let i = 0; i < pos.count; i++) {
+          const k = THREE.MathUtils.smoothstep(pos.getY(i), -0.6, -0.1);
+          c.copy(whaleBellyColor).lerp(whalePinkColor, k);
+          c.toArray(colors, i * 3);
+        }
+        geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+        return new THREE.Mesh(geo, whaleSkin);
+      }
+      whaleBody.add(whaleLathe(bodyProfile));
+
+      // 依輪廓算出身體表面上的點：z 位置＋繞軸角度（0 = 正側面，正值往上）
+      function whaleSurface(z, angle, side, lift = 0) {
+        let r = 0;
+        for (let i = 0; i < bodyProfile.length - 1; i++) {
+          const a = bodyProfile[i];
+          const b = bodyProfile[i + 1];
+          if ((z - a.y) * (z - b.y) <= 0) {
+            r = THREE.MathUtils.lerp(a.x, b.x, (z - a.y) / ((b.y - a.y) || 1));
+            break;
+          }
+        }
+        r += lift;
+        return new THREE.Vector3(side * r * WHALE_SX * Math.cos(angle), r * WHALE_SY * Math.sin(angle), z);
+      }
+
+      // 尾柄＋弧形尾鰭：以身體末端為支點上下擺動
+      const whaleTail = new THREE.Group();
+      whaleTail.position.set(0, 0, -1.8);
+      whaleTail.add(whaleLathe(tailProfile));
+      const flukeShape = new THREE.Shape();
+      flukeShape.moveTo(0, 0.12);
+      flukeShape.bezierCurveTo(0.45, 0.1, 0.95, -0.05, 1.25, -0.6);
+      flukeShape.bezierCurveTo(0.85, -0.38, 0.4, -0.5, 0, -0.25);
+      flukeShape.bezierCurveTo(-0.4, -0.5, -0.85, -0.38, -1.25, -0.6);
+      flukeShape.bezierCurveTo(-0.95, -0.05, -0.45, 0.1, 0, 0.12);
+      const flukeGeo = new THREE.ExtrudeGeometry(flukeShape, {
+        depth: 0.04, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 4, curveSegments: 24,
+      });
+      flukeGeo.rotateX(Math.PI / 2);
+      flukeGeo.translate(0, 0.02, 0);
+      const fluke = new THREE.Mesh(flukeGeo, mat(0xf4a6c6, { flatShading: false, roughness: 0.55 }));
+      fluke.position.set(0, 0, -1.45);
+      whaleTail.add(fluke);
+      whaleBody.add(whaleTail);
+
+      // 胸鰭：細長往後掠
+      const finShape = new THREE.Shape();
+      finShape.moveTo(0, 0.18);
+      finShape.bezierCurveTo(0.35, 0.2, 0.75, 0.0, 0.95, -0.35);
+      finShape.bezierCurveTo(0.6, -0.25, 0.25, -0.2, 0, -0.18);
+      finShape.closePath();
+      const finGeo = new THREE.ExtrudeGeometry(finShape, {
+        depth: 0.03, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 3, curveSegments: 16,
+      });
+      finGeo.rotateX(Math.PI / 2);
+      const finMat = mat(0xf7b8d2, { flatShading: false, roughness: 0.55, side: THREE.DoubleSide });
+      const whaleFins = [-1, 1].map(side => {
+        const pivot = new THREE.Group();
+        pivot.position.copy(whaleSurface(0.9, -0.55, side, -0.05));
+        const fin = new THREE.Mesh(finGeo, finMat);
+        fin.scale.x = side;
+        fin.rotation.z = side * -0.35;
+        pivot.add(fin);
+        whaleBody.add(pivot);
+        return pivot;
+      });
+
+      // 臉：眼睛、反光、腮紅、微笑都貼在身體表面
+      [-1, 1].forEach(side => {
+        const eyePos = whaleSurface(1.55, 0.18, side);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 12), whaleDark);
+        eye.position.copy(eyePos);
+        const shine = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        shine.position.copy(whaleSurface(1.6, 0.26, side, 0.1));
+        const blush = new THREE.Mesh(new THREE.CircleGeometry(0.18, 20), new THREE.MeshBasicMaterial({ color: 0xff7fa8 }));
+        const blushPos = whaleSurface(1.3, -0.12, side, 0.01);
+        blush.position.copy(blushPos);
+        blush.lookAt(blushPos.clone().add(new THREE.Vector3(side * 2, -0.2, 0.6)));
+        const smilePos = whaleSurface(1.85, -0.42, side, 0.01);
+        const smile = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.03, 8, 20, Math.PI * 0.8), whaleDark);
+        smile.position.copy(smilePos);
+        smile.lookAt(smilePos.clone().add(new THREE.Vector3(side * 2, -0.8, 1)));
+        smile.rotateZ(Math.PI * 1.1);
+        whaleBody.add(eye, shine, blush, smile);
+      });
+      const spoutBase = whaleSurface(0.7, Math.PI / 2, 1);
+
+      // 頭頂噴氣孔的小水柱：水珠往上噴再往外落下，循環播放
+      const spoutMat = new THREE.MeshStandardMaterial({ color: 0xbfe8ff, emissive: 0x7fcfff, emissiveIntensity: 0.4, transparent: true, opacity: 0.85 });
+      const spoutDrops = [];
+      for (let i = 0; i < 14; i++) {
+        const drop = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), spoutMat);
+        const a = (i / 14) * Math.PI * 2;
+        spoutDrops.push({ drop, dir: new THREE.Vector2(Math.cos(a), Math.sin(a)), offset: (i * 0.37) % 1 });
+        whaleBody.add(drop);
+      }
+      whale.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      whale.scale.setScalar(1.3);
+
+      // 鯨魚繞著目前看的地方游：全景時繞整個群島，進城時繞那座島
+      const whaleOrbit = { center: new THREE.Vector3(), radius: 30, height: 16, speed: 0.045 };
+      function updateWhale(t) {
+        const overview = focusKey === "overview";
+        whaleOrbit.center.lerp(overview ? new THREE.Vector3(0, 0, 0) : focusPoint(cities[focusKey]), 0.01);
+        whaleOrbit.radius += ((overview ? 50 : 30) - whaleOrbit.radius) * 0.01;
+        whaleOrbit.height += ((overview ? 30 : 16) - whaleOrbit.height) * 0.01;
+        const a = t * whaleOrbit.speed;
+        const y = whaleOrbit.height + Math.sin(t * 0.8) * 0.9;
+        const c = whaleOrbit.center;
+        whale.position.set(c.x + Math.cos(a) * whaleOrbit.radius, y, c.z + Math.sin(a) * whaleOrbit.radius);
+        // 往前一點的位置當作目標，讓頭朝著前進方向
+        const ahead = a + 0.05;
+        whale.lookAt(c.x + Math.cos(ahead) * whaleOrbit.radius, y, c.z + Math.sin(ahead) * whaleOrbit.radius);
+        whaleBody.rotation.z = Math.sin(t * 0.8) * 0.1;
+        whaleBody.rotation.x = Math.cos(t * 0.8) * 0.06;
+        whaleTail.rotation.x = Math.sin(t * 2.2) * 0.3;
+        whaleFins.forEach((f, i) => { f.rotation.z = (i === 0 ? -1 : 1) * Math.sin(t * 2.2) * 0.35; });
+        spoutDrops.forEach(s => {
+          const life = (t * 0.6 + s.offset) % 1;
+          const spread = life * 0.9;
+          s.drop.position.set(s.dir.x * spread, spoutBase.y + life * 2.4 - life * life * 2.2, spoutBase.z + s.dir.y * spread);
+          s.drop.scale.setScalar(1 - life * 0.6);
+        });
+      }
+
+      // ---------- 時間與光線 ----------
+      const skyStops = [
+        [0, 0x1d2340], [5, 0x3b3a66], [7, 0xf6c39a], [12, 0xbfe3f2],
+        [17, 0xf6d9b8], [19, 0xe58a62], [21, 0x2c2b55], [24, 0x1d2340],
+      ];
+      function skyColor(t) {
+        for (let i = 0; i < skyStops.length - 1; i++) {
+          const [t0, c0] = skyStops[i];
+          const [t1, c1] = skyStops[i + 1];
+          if (t >= t0 && t <= t1) {
+            return new THREE.Color(c0).lerp(new THREE.Color(c1), (t - t0) / (t1 - t0));
+          }
+        }
+        return new THREE.Color(skyStops[0][1]);
+      }
+
+      const timeInput = document.getElementById("time");
+      const clock = document.getElementById("clock");
+      const playBtn = document.getElementById("play");
+      let hour = 8;
+      let playing = true;
+      const waterDay = new THREE.Color(0x2ba3d6);
+      const env = { night: 0, daylight: 1 };
+      const sunDir = new THREE.Vector3();
+
+      function applyTime(t) {
+        const sky = skyColor(t);
+        scene.background = sky;
+        scene.fog.color.copy(sky);
+        document.body.style.background = "#" + sky.getHexString();
+        const a = ((t - 6) / 12) * Math.PI;
+        const daylight = Math.max(0, Math.sin(a));
+        sunDir.set(Math.cos(a), Math.max(0.13, Math.sin(a)), 0.4).normalize();
+        sun.intensity = 0.25 + daylight * 1.5;
+        hemi.intensity = 0.35 + daylight * 0.6;
+        water.material.color.set(0x1a2c4a).lerp(waterDay, Math.min(1, daylight * 2));
+        sparkMat.uniforms.uDay.value = daylight;
+        env.daylight = daylight;
+        env.night = 1 - Math.min(1, daylight * 3);
+        cityUniforms.uNight.value = env.night;
+        const hh = String(Math.floor(t) % 24).padStart(2, "0");
+        const mm = String(Math.floor((t % 1) * 60)).padStart(2, "0");
+        clock.textContent = `${hh}:${mm}`;
+      }
+
+      timeInput.addEventListener("input", () => { hour = parseFloat(timeInput.value); applyTime(hour); });
+      playBtn.addEventListener("click", () => {
+        playing = !playing;
+        playBtn.textContent = playing ? "❚❚" : "▶";
+      });
+
+      // ---------- 城市日誌 ----------
+      const logList = document.getElementById("logList");
+      function log(text) {
+        if (!text) return;
+        const li = document.createElement("li");
+        const time = document.createElement("time");
+        time.textContent = clock.textContent;
+        li.append(time, text);
+        logList.prepend(li);
+        while (logList.children.length > 30) logList.lastChild.remove();
+      }
+
+      const heroEvents = [
+        () => `${role.skills[Math.floor(Math.random() * 3)]} 進度 +${1 + Math.floor(Math.random() * 9)}%`,
+        () => `•ᴗ• 洋流：${role.motto}`,
+        () => `一位居民向${role.title}${name}說謝謝。`,
+        () => `${name}：「今天也要跟酒肉檳友們好好走跳！」`,
+      ];
+      const whaleEvents = [
+        () => "一隻粉紅鯨魚慢悠悠地游過群島上空。",
+        () => `粉紅鯨魚噴出一道小水柱，${name} 抬頭看得目不轉睛。`,
+        () => "台 1 線上車流不斷，一台貨車載著西螺米開往高雄港。",
+        () => "縱貫線的高架橋跨過海面，從台北一路串到高雄。",
+      ];
+      setInterval(() => {
+        if (!playing) return;
+        // 進城時多半講這座城的事；全景時三座城輪流
+        let pool;
+        if (focusKey === "overview") {
+          pool = [...heroEvents, ...whaleEvents, ...Object.values(cities).flatMap(c => c.events), ...buddies.map(b => () => buddyLine(b))];
+        } else {
+          const city = cities[focusKey];
+          pool = [...city.events, ...city.events, ...heroEvents, ...whaleEvents];
+          // 正在這座島上的檳友，也會講幾句話
+          buddies.filter(b => walkNodes[b.walk.node].city === city.key).forEach(b => pool.push(() => buddyLine(b), () => buddyLine(b)));
+        }
+        log(pool[Math.floor(Math.random() * pool.length)]());
+      }, 3500);
+
+      // ---------- 鏡頭飛行：全景 ↔ 各島 ----------
+      let focusKey = "overview";
+      // 全景從東側看過去，台北在右、高雄在左，整串群島橫躺在畫面上
+      const OVERVIEW = { target: new THREE.Vector3(2, 0, -6), offset: new THREE.Vector3(145, 112, 6), min: 50, max: 360, shadow: 95 };
+      const CITY_VIEW = { offset: new THREE.Vector3(27, 22, 34), min: 14, max: 90, shadow: 42 };
+      const travel = { t: 1, dur: 2.4, fromPos: new THREE.Vector3(), fromTarget: new THREE.Vector3(), toPos: new THREE.Vector3(), toTarget: new THREE.Vector3(), view: OVERVIEW };
+      const focusPoint = city => city.group.position.clone().add(city.focus);
+      const cityLine = document.getElementById("cityLine");
+      const navButtons = document.querySelectorAll("#islands button");
+
+      function setShadowSize(size) {
+        Object.assign(sun.shadow.camera, { left: -size, right: size, top: size, bottom: -size, far: size * 6 });
+        sun.shadow.camera.updateProjectionMatrix();
+      }
+
+      function focusOn(key) {
+        if (key !== "overview" && !cities[key]) return;
+        focusKey = key;
+        const view = key === "overview" ? OVERVIEW : CITY_VIEW;
+        const target = key === "overview" ? OVERVIEW.target.clone() : focusPoint(cities[key]);
+        travel.fromPos.copy(camera.position);
+        travel.fromTarget.copy(controls.target);
+        travel.toTarget.copy(target);
+        // 城市可以用 viewScale 調整鏡頭遠近（高樓多的城市拉遠一點）
+        const scale = key === "overview" ? 1 : (cities[key].viewScale || 1);
+        travel.toPos.copy(target).addScaledVector(view.offset, scale);
+        travel.view = view;
+        travel.t = 0;
+        controls.enabled = false;
+        controls.minDistance = 1;
+        controls.maxDistance = 2000;
+
+        document.body.classList.toggle("overview", key === "overview");
+        navButtons.forEach(b => b.classList.toggle("active", b.dataset.key === key));
+        if (key === "overview") {
+          cityLine.textContent = "三座島、三個酒肉檳友，一條縱貫線";
+          log("鏡頭拉高，看見整個 DRUNK 酒肉檳友島。");
+        } else {
+          const city = cities[key];
+          cityLine.textContent = `${city.icon} ${city.title}・${city.subtitle}`;
+          log(`鏡頭跟著粉紅鯨魚，飛往${city.title}！`);
+        }
+      }
+      navButtons.forEach(b => b.addEventListener("click", () => focusOn(b.dataset.key)));
+
+      function updateTravel(dt) {
+        if (travel.t >= 1) return;
+        travel.t = Math.min(1, travel.t + dt / travel.dur);
+        const e = travel.t < 0.5 ? 4 * travel.t ** 3 : 1 - (-2 * travel.t + 2) ** 3 / 2;
+        camera.position.lerpVectors(travel.fromPos, travel.toPos, e);
+        // 中途拉高一點，像飛過海面
+        camera.position.y += Math.sin(e * Math.PI) * travel.fromPos.distanceTo(travel.toPos) * 0.25;
+        controls.target.lerpVectors(travel.fromTarget, travel.toTarget, e);
+        if (travel.t === 1) {
+          controls.enabled = true;
+          controls.minDistance = travel.view.min;
+          controls.maxDistance = travel.view.max;
+          setShadowSize(travel.view.shadow);
+        }
+      }
+
+      // ---------- 點擊 ----------
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      let downAt = null;
+      const clickRoots = [whale, highway, ...buddies.map(b => b.root), ...Object.values(cities).map(c => c.group)];
+      renderer.domElement.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
+      renderer.domElement.addEventListener("pointerup", e => {
+        if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
+        if (travel.t < 1) return;
+        pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+        raycaster.setFromCamera(pointer, camera);
+        const hit = raycaster.intersectObjects(clickRoots, true).find(h => h.object.isMesh);
+        if (!hit) return;
+        // 往上找：第一個有 clickable 的物件，以及它屬於哪座城
+        let target = null;
+        let cityKey = null;
+        for (let o = hit.object; o; o = o.parent) {
+          if (!target && o.userData.clickable) target = o;
+          if (o.userData.cityKey) { cityKey = o.userData.cityKey; break; }
+        }
+        if (target && target.userData.clickable === "buddy") {
+          selectBuddy(buddies.find(x => x.def.key === target.userData.buddyKey));
+          return;
+        }
+        if (target && target.userData.clickable === "highway") {
+          log(`${name} 騎著機車上了台 1 線，從台北一路南下，經過彰化，直奔高雄！`);
+          return;
+        }
+        if (target && target.userData.clickable === "whale") {
+          log(`粉紅鯨魚對 ${name} 眨了眨眼，甩甩尾巴游走了 ♡`);
+          return;
+        }
+        // 全景或點到別座島：先飛過去
+        if (cityKey && cityKey !== focusKey) {
+          focusOn(cityKey);
+          return;
+        }
+        if (!target) return;
+        log(cities[cityKey].onClick(target, { name, role, roles, roleIndex }));
+      });
+
+      // ---------- 動畫 ----------
+      function animate() {
+        const dt = Math.min(timer.getDelta(), 0.05);
+        const t = timer.elapsedTime;
+
+        if (playing) {
+          hour = (hour + dt * 0.4) % 24;
+          timeInput.value = hour;
+          applyTime(hour);
+        }
+
+        updateTravel(dt);
+        Object.values(cities).forEach(c => c.update(dt, t, env));
+
+        // 太陽跟著鏡頭看的地方，陰影才會落在眼前的島上
+        sun.target.position.copy(controls.target);
+        sun.position.copy(controls.target).addScaledVector(sunDir, 80);
+
+        // 霧的遠近跟著鏡頭距離調整，全景時不會整片霧茫茫
+        const dist = camera.position.distanceTo(controls.target);
+        scene.fog.near = dist * 1.3;
+        scene.fog.far = dist * 3.4;
+
+        seaTime.value = t;
+        sparkMat.uniforms.uTime.value = t;
+
+        // 三位檳友走跳
+        buddies.forEach(bd => updateBuddy(bd, dt, t));
+
+        updateWhale(t);
+        updateHighway(dt);
+        clouds.forEach(c => {
+          c.position.x += c.userData.speed * dt;
+          if (c.position.x > 130) c.position.x = -130;
+        });
+
+        // 全景時不自動旋轉，三座島的位置才看得清楚
+        controls.autoRotate = playing && focusKey !== "overview" && travel.t >= 1;
+        controls.update();
+        renderer.render(scene, camera);
+        labelRenderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+
+      applyTime(hour);
+      setShadowSize(OVERVIEW.shadow);
+      camera.position.copy(OVERVIEW.target).add(OVERVIEW.offset);
+      animate();
+
+      addEventListener("resize", () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+        labelRenderer.setSize(innerWidth, innerHeight);
+      });
+
+      // 開場結束
+      setTimeout(() => {
+        document.getElementById("intro").classList.add("hide");
+        document.querySelectorAll(".bar i").forEach(i => { i.style.width = i.dataset.v + "%"; });
+        log(`${name} 登上了 DRUNK 酒肉檳友島！`);
+        log(`你被分配到${role.theme}街區，擔任「${role.title}」。`);
+        log(playerKey === "kanko" ? `${name} 今天戴著自己的金色皇冠出門！` : `${name} 今天戴著${HATS[hatIndex].name}出門！`);
+        log("蛙哥在高雄、貓哥在台北、冠子さん在彰化，三個人開始走跳了！");
+        log("點上方的按鈕，或直接點一座島，就能飛過去看看。");
+        // 網址帶 #taipei／#changhua／#kaohsiung 時，直接飛到那座城
+        const start = location.hash.slice(1);
+        focusOn(cities[start] ? start : window.ISLAND.players[playerKey].home);
+      }, 1400);
+
+      // ---------- 工具 ----------
+      function hashString(str) {
+        let h = 2166136261;
+        for (const ch of str) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); }
+        return h >>> 0;
+      }
+      function mulberry32(a) {
+        return function () {
+          a |= 0; a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+    </script>
+</body>
+</html>
