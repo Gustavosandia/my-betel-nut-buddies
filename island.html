@@ -719,10 +719,21 @@
       const seaTime = { value: 0 };
       const waterGeo = new THREE.PlaneGeometry(SEA, SEA, 320, 320);
       waterGeo.rotateX(-Math.PI / 2);
-      const water = new THREE.Mesh(waterGeo, mat(0x2ba3d6, { roughness: 0.25, metalness: 0, emissive: 0x0b3550 }));
+      // 平滑著色＋依波浪算出的法線：反光會順著浪起伏，不會出現一格一格的方塊
+      const water = new THREE.Mesh(waterGeo, mat(0x2ba3d6, { roughness: 0.4, metalness: 0, emissive: 0x0b3550, flatShading: false }));
       water.material.onBeforeCompile = shader => {
         shader.uniforms.uTime = seaTime;
         shader.vertexShader = "uniform float uTime;\n" + shader.vertexShader.replace(
+          "#include <beginnormal_vertex>",
+          `vec4 waveWorld = modelMatrix * vec4(position, 1.0);
+          // 浪的高度對 x、z 的斜率，算出浪面的法線
+          float slopeX = 0.25 * 0.15 * cos(waveWorld.x * 0.25 + uTime);
+          float slopeZ = -0.3 * 0.15 * sin(waveWorld.z * 0.3 + uTime * 0.8);
+          vec3 objectNormal = normalize(vec3(-slopeX, 1.0, -slopeZ));
+          #ifdef USE_TANGENT
+            vec3 objectTangent = vec3(tangent.xyz);
+          #endif`
+        ).replace(
           "#include <begin_vertex>",
           `#include <begin_vertex>
           vec4 seaWorld = modelMatrix * vec4(transformed, 1.0);
@@ -1638,32 +1649,183 @@
       };
       const buddyLine = b => pickFrom(BUDDY_LINES[b.def.key])(b);
 
-      // ---------- 雲：散布在整個群島上空 ----------
+      // ---------- 雲：散布在整個群島上空，有好幾種雲型，會慢慢變形、隨時間變色 ----------
       // 高面數圓球＋平滑著色，微微自發光讓底部不會太暗，看起來像棉花糖
       const clouds = [];
       const puffGeo = new THREE.SphereGeometry(1, 32, 20);
-      const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.25 });
-      for (let i = 0; i < 18; i++) {
-        const cloud = new THREE.Group();
-        // 中間的球最大、往兩側越來越小，形成圓頂的雲
-        const puffs = 5 + Math.floor(Math.random() * 3);
-        for (let j = 0; j < puffs; j++) {
-          const u = (j / (puffs - 1)) * 2 - 1;
-          const size = (1.25 - Math.abs(u) * 0.55) * (0.9 + Math.random() * 0.2);
-          const puff = new THREE.Mesh(puffGeo, cloudMat);
-          puff.scale.setScalar(size);
-          puff.position.set(u * 2.4, size * 0.35 + Math.random() * 0.15, (Math.random() - 0.5) * 0.7);
+      const rnd = (min, max) => min + Math.random() * (max - min);
+      // 每一種雲型回傳一串圓球 [x, y, z, 半徑, 壓扁比例, (x 寬, z 寬)]
+      const CLOUD_TYPES = [
+        {
+          // 積雲：中間高、兩側低的圓頂，最常見
+          name: "cumulus", weight: 5,
+          puffs() {
+            const n = 5 + Math.floor(rnd(0, 3));
+            const list = [];
+            for (let j = 0; j < n; j++) {
+              const u = (j / (n - 1)) * 2 - 1;
+              const r = (1.25 - Math.abs(u) * 0.55) * rnd(0.9, 1.1);
+              list.push([u * 2.4, r * 0.35 + rnd(0, 0.15), rnd(-0.35, 0.35), r, 1]);
+            }
+            // 壓扁的底座讓雲的下緣平整
+            list.push([0, 0, 0, 1, 0.55, 2.9, 1.1]);
+            return list;
+          },
+        },
+        {
+          // 大積雲：往上一層一層堆高，像花椰菜
+          name: "tower", weight: 2,
+          puffs() {
+            const list = [[0, 0, 0, 1, 0.55, 3.2, 1.4]];
+            for (let layer = 0; layer < 3; layer++) {
+              const n = 4 - layer;
+              for (let j = 0; j < n; j++) {
+                const u = n === 1 ? 0 : (j / (n - 1)) * 2 - 1;
+                const r = (1.4 - layer * 0.25) * rnd(0.85, 1.1);
+                list.push([u * (2.2 - layer * 0.6), 0.5 + layer * 1.15, rnd(-0.4, 0.4), r, 1]);
+              }
+            }
+            return list;
+          },
+        },
+        {
+          // 層雲：又長又扁的一大片，飄得比較高
+          name: "stratus", weight: 2,
+          puffs() {
+            const n = 8 + Math.floor(rnd(0, 4));
+            const list = [];
+            for (let j = 0; j < n; j++) {
+              const u = (j / (n - 1)) * 2 - 1;
+              list.push([u * 6, rnd(-0.1, 0.25), rnd(-0.9, 0.9), rnd(0.9, 1.4), 0.45]);
+            }
+            return list;
+          },
+        },
+        {
+          // 碎雲：兩三團小小的，半透明
+          name: "wisp", weight: 3, opacity: 0.75,
+          puffs() {
+            const n = 2 + Math.floor(rnd(0, 2));
+            const list = [];
+            for (let j = 0; j < n; j++) list.push([j * 1.3 - n * 0.6, rnd(0, 0.3), rnd(-0.3, 0.3), rnd(0.55, 0.85), 0.8]);
+            return list;
+          },
+        },
+        {
+          // 綿羊雲：兩排小圓球排成魚鱗狀
+          name: "flock", weight: 2,
+          puffs() {
+            const list = [];
+            for (let row = 0; row < 2; row++) {
+              for (let j = 0; j < 5; j++) list.push([j * 1.3 - 2.6 + row * 0.6, row * 0.2, row * 1.1 - 0.55, rnd(0.5, 0.7), 0.85]);
+            }
+            return list;
+          },
+        },
+        {
+          // 偶爾出現的愛心雲
+          name: "heart", weight: 0.4,
+          puffs() {
+            const list = [];
+            for (let k = 0; k < 14; k++) {
+              const a = (k / 14) * Math.PI * 2;
+              const x = 16 * Math.sin(a) ** 3;
+              const y = 13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a);
+              list.push([x * 0.16, y * 0.16 + 1.6, 0, 0.75, 1]);
+            }
+            list.push([0, 1.6, 0, 1.4, 1]);
+            return list;
+          },
+        },
+      ];
+      const totalWeight = CLOUD_TYPES.reduce((sum, ct) => sum + ct.weight, 0);
+      const pickCloudType = () => {
+        let r = Math.random() * totalWeight;
+        return CLOUD_TYPES.find(ct => (r -= ct.weight) < 0) || CLOUD_TYPES[0];
+      };
+
+      // 雲的顏色跟著時間：白天白、日出日落染成橘粉、晚上灰藍
+      const cloudTintStops = [
+        [0, 0x4f5878], [5, 0x6f7398], [6.3, 0xffc4a6], [7.8, 0xffffff], [16.5, 0xffffff],
+        [17.8, 0xffb88f], [18.8, 0xe890a8], [20.2, 0x5a6084], [24, 0x4f5878],
+      ];
+      const cloudTint = new THREE.Color(0xffffff);
+      const cloudGlow = { value: 0.25 };
+
+      // 捏一朵雲（飄出範圍後，會用同一個 Group 重新捏成別的樣子）
+      function shapeCloud(cloud) {
+        cloud.userData.material?.dispose();
+        cloud.clear();
+        const type = pickCloudType();
+        // 每朵雲的白度不一樣，少數偏灰，看起來像快下雨的雲
+        const shade = Math.random() < 0.15 ? rnd(0.62, 0.75) : rnd(0.88, 1);
+        const material = new THREE.MeshStandardMaterial({
+          color: cloudTint.clone().multiplyScalar(shade), roughness: 1,
+          emissive: cloudTint.clone(), emissiveIntensity: cloudGlow.value,
+          transparent: !!type.opacity, opacity: type.opacity || 1,
+        });
+        type.puffs().forEach(([x, y, z, r, squash, sx, sz]) => {
+          const puff = new THREE.Mesh(puffGeo, material);
+          puff.userData.base = new THREE.Vector3(sx ?? r, r * squash, sz ?? r);
+          puff.userData.phase = Math.random() * Math.PI * 2;
+          puff.scale.copy(puff.userData.base);
+          puff.position.set(x, y, z);
           cloud.add(puff);
+        });
+        const heart = type.name === "heart";
+        cloud.scale.setScalar(heart ? rnd(1, 1.3) : rnd(0.7, 1.8));
+        cloud.rotation.y = heart ? Math.PI / 2 : rnd(-0.4, 0.4);
+        cloud.userData = {
+          material,
+          shade,
+          speed: rnd(0.4, 1.6),
+          drift: rnd(-0.25, 0.25),
+          baseY: type.name === "stratus" ? rnd(24, 30) : type.name === "wisp" ? rnd(18, 28) : rnd(13, 22),
+          bob: Math.random() * Math.PI * 2,
+        };
+      }
+
+      function updateCloudColors(t, daylight) {
+        for (let i = 0; i < cloudTintStops.length - 1; i++) {
+          const [t0, c0] = cloudTintStops[i];
+          const [t1, c1] = cloudTintStops[i + 1];
+          if (t >= t0 && t <= t1) {
+            cloudTint.set(c0).lerp(new THREE.Color(c1), (t - t0) / (t1 - t0));
+            break;
+          }
         }
-        // 壓扁的底座讓雲的下緣平整
-        const base = new THREE.Mesh(puffGeo, cloudMat);
-        base.scale.set(2.9, 0.55, 1.1);
-        cloud.add(base);
-        cloud.scale.setScalar(0.9 + Math.random() * 0.8);
-        cloud.position.set(Math.random() * 240 - 120, 14 + Math.random() * 10, Math.random() * 300 - 150);
-        cloud.userData.speed = 0.6 + Math.random() * 0.8;
+        // 太陽越低，雲自己發的光越多：傍晚被夕陽從背後照時才不會變成咖啡色
+        cloudGlow.value = 0.6 - 0.35 * daylight;
+        clouds.forEach(c => {
+          c.userData.material.color.copy(cloudTint).multiplyScalar(c.userData.shade);
+          c.userData.material.emissive.copy(cloudTint);
+          c.userData.material.emissiveIntensity = cloudGlow.value;
+        });
+      }
+
+      for (let i = 0; i < 24; i++) {
+        const cloud = new THREE.Group();
+        shapeCloud(cloud);
+        cloud.position.set(rnd(-130, 130), cloud.userData.baseY, rnd(-150, 150));
         scene.add(cloud);
         clouds.push(cloud);
+      }
+
+      // 每一格：往東飄、輕輕上下浮、圓球慢慢膨脹收縮；飄出範圍就從西邊換個樣子再進來
+      function updateClouds(dt, t) {
+        clouds.forEach(c => {
+          const u = c.userData;
+          c.position.x += u.speed * dt;
+          c.position.z += u.drift * dt;
+          c.position.y = u.baseY + Math.sin(t * 0.25 + u.bob) * 0.6;
+          c.children.forEach(p => {
+            p.scale.copy(p.userData.base).multiplyScalar(1 + Math.sin(t * 0.35 + p.userData.phase) * 0.07);
+          });
+          if (c.position.x > 130 || Math.abs(c.position.z) > 160) {
+            shapeCloud(c);
+            c.position.set(-130, c.userData.baseY, rnd(-150, 150));
+          }
+        });
       }
 
       // ---------- 天空的粉紅鯨魚 ----------
@@ -1866,6 +2028,7 @@
         env.daylight = daylight;
         env.night = 1 - Math.min(1, daylight * 3);
         cityUniforms.uNight.value = env.night;
+        updateCloudColors(t, daylight);
         const hh = String(Math.floor(t) % 24).padStart(2, "0");
         const mm = String(Math.floor((t % 1) * 60)).padStart(2, "0");
         clock.textContent = `${hh}:${mm}`;
@@ -2416,10 +2579,7 @@
 
         updateWhale(t);
         updateHighway(dt);
-        clouds.forEach(c => {
-          c.position.x += c.userData.speed * dt;
-          if (c.position.x > 130) c.position.x = -130;
-        });
+        updateClouds(dt, t);
 
         // 全景時不自動旋轉，三座島的位置才看得清楚
         controls.autoRotate = playing && focusKey !== "overview" && travel.t >= 1;
