@@ -1649,6 +1649,16 @@
       };
       const buddyLine = b => pickFrom(BUDDY_LINES[b.def.key])(b);
 
+      // 依時間在一串 [小時, 顏色] 色票之間漸變（天空、雲都用這個）
+      function colorAtHour(stops, t) {
+        for (let i = 0; i < stops.length - 1; i++) {
+          const [t0, c0] = stops[i];
+          const [t1, c1] = stops[i + 1];
+          if (t >= t0 && t <= t1) return new THREE.Color(c0).lerp(new THREE.Color(c1), (t - t0) / (t1 - t0));
+        }
+        return new THREE.Color(stops[0][1]);
+      }
+
       // ---------- 雲：散布在整個群島上空，有好幾種雲型，會慢慢變形、隨時間變色 ----------
       // 高面數圓球＋平滑著色，微微自發光讓底部不會太暗，看起來像棉花糖
       const clouds = [];
@@ -1786,14 +1796,7 @@
       }
 
       function updateCloudColors(t, daylight) {
-        for (let i = 0; i < cloudTintStops.length - 1; i++) {
-          const [t0, c0] = cloudTintStops[i];
-          const [t1, c1] = cloudTintStops[i + 1];
-          if (t >= t0 && t <= t1) {
-            cloudTint.set(c0).lerp(new THREE.Color(c1), (t - t0) / (t1 - t0));
-            break;
-          }
-        }
+        cloudTint.copy(colorAtHour(cloudTintStops, t));
         // 太陽越低，雲自己發的光越多：傍晚被夕陽從背後照時才不會變成咖啡色
         cloudGlow.value = 0.6 - 0.35 * daylight;
         clouds.forEach(c => {
@@ -1993,16 +1996,7 @@
         [0, 0x1d2340], [5, 0x3b3a66], [7, 0xf6c39a], [12, 0xbfe3f2],
         [17, 0xf6d9b8], [19, 0xe58a62], [21, 0x2c2b55], [24, 0x1d2340],
       ];
-      function skyColor(t) {
-        for (let i = 0; i < skyStops.length - 1; i++) {
-          const [t0, c0] = skyStops[i];
-          const [t1, c1] = skyStops[i + 1];
-          if (t >= t0 && t <= t1) {
-            return new THREE.Color(c0).lerp(new THREE.Color(c1), (t - t0) / (t1 - t0));
-          }
-        }
-        return new THREE.Color(skyStops[0][1]);
-      }
+      const skyColor = t => colorAtHour(skyStops, t);
 
       const timeInput = document.getElementById("time");
       const clock = document.getElementById("clock");
@@ -2052,7 +2046,7 @@
         while (logList.children.length > 30) logList.lastChild.remove();
       }
 
-      const heroEvents = [
+      const playerEvents = [
         () => `${role.skills[Math.floor(Math.random() * 3)]} 進度 +${1 + Math.floor(Math.random() * 9)}%`,
         () => `•ᴗ• 洋流：${role.motto}`,
         () => `一位居民向${role.title}${name}說謝謝。`,
@@ -2069,10 +2063,10 @@
         // 進城時多半講這座城的事；全景時三座城輪流
         let pool;
         if (focusKey === "overview") {
-          pool = [...heroEvents, ...whaleEvents, ...Object.values(cities).flatMap(c => c.events), ...buddies.map(b => () => buddyLine(b))];
+          pool = [...playerEvents, ...whaleEvents, ...Object.values(cities).flatMap(c => c.events), ...buddies.map(b => () => buddyLine(b))];
         } else {
           const city = cities[focusKey];
-          pool = [...city.events, ...city.events, ...heroEvents, ...whaleEvents];
+          pool = [...city.events, ...city.events, ...playerEvents, ...whaleEvents];
           // 正在這座島上的檳友，也會講幾句話
           buddies.filter(b => walkNodes[b.walk.node].city === city.key).forEach(b => pool.push(() => buddyLine(b), () => buddyLine(b)));
         }
@@ -2332,7 +2326,14 @@
       });
 
       const PASSPORT_KEY = "drunkPassport";
-      let passport = { stamps: {}, quests: { rats: "hidden", feed: "hidden", sunset: "hidden", cheers: "hidden" }, fed: {}, cheered: {}, master: false };
+      const blankPassport = () => ({
+        stamps: {},
+        quests: Object.fromEntries(Object.keys(QUESTS).map(k => [k, "hidden"])),
+        fed: {},
+        cheered: {},
+        master: false,
+      });
+      let passport = blankPassport();
       try {
         const saved = JSON.parse(localStorage.getItem(PASSPORT_KEY) || "null");
         if (saved && saved.quests) passport = { ...passport, ...saved, quests: { ...passport.quests, ...saved.quests } };
@@ -2439,7 +2440,7 @@
       }));
       document.getElementById("resetPassport").addEventListener("click", () => {
         if (!confirm("確定要清除護照上的所有章和任務進度嗎？")) return;
-        passport = { stamps: {}, quests: { rats: "hidden", feed: "hidden", sunset: "hidden", cheers: "hidden" }, fed: {}, cheered: {}, master: false };
+        passport = blankPassport();
         savePassport();
         renderPassport();
         log("📜 護照清空了，重新開始環島吧！");

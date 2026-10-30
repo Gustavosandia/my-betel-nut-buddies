@@ -802,7 +802,7 @@ window.HeartCities.taipei = function buildTaipei(ctx) {
     const hitbox = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 6), new THREE.MeshBasicMaterial({ visible: false }));
     hitbox.position.y = 0.25;
     rat.add(hitbox);
-    rats.push({ rat, body, tail, caught: 0, from: startNode, to: startNode, prev: -1, along: 1, pause: rand() * 2, speed: 3.2 + rand() * 1.2, phase: rand() * 6 });
+    rats.push({ rat, body, tail, caught: 0, from: startNode, to: startNode, along: 1, pause: rand() * 2, speed: 3.2 + rand() * 1.2, phase: rand() * 6 });
   }
   // 走到路口就隨機挑一條（盡量不走回頭路），偶爾停下來東張西望
   // 抓老鼠小遊戲用：被抓到的老鼠消失一下，再從隨機的路口冒出來；遊戲中老鼠跑更快

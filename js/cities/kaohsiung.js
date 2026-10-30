@@ -313,10 +313,10 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   island.add(riverLabel);
   addLabel("愛河", riverLabel, 1.2);
 
-  // ---------- 主角站的小廣場（駁二旁邊） ----------
-  const heroSpot = new THREE.Vector3(1.6, GROUND_TOP + 0.06, -11.4);
+  // ---------- 駁二旁邊的小廣場（步道從這裡接上縱貫線） ----------
+  const squareSpot = new THREE.Vector3(1.6, GROUND_TOP + 0.06, -11.4);
   const square = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.12, 32), mat(0xe9dcc4, { flatShading: false }));
-  square.position.set(heroSpot.x, GROUND_TOP, heroSpot.z);
+  square.position.set(squareSpot.x, GROUND_TOP, squareSpot.z);
   square.receiveShadow = true;
   island.add(square);
 
@@ -326,7 +326,7 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   const we = (a, b) => walk.edges.push([a, b]);
   const nearestOf = (list, i) => list.reduce((best, j) => (walk.nodes[j].distanceTo(walk.nodes[i]) < walk.nodes[best].distanceTo(walk.nodes[i]) ? j : best), list[0]);
   const gateNode = wn(HIGHWAY_X, 0.78, -12);
-  const squareNode = wn(heroSpot.x, heroSpot.y, heroSpot.z);
+  const squareNode = wn(squareSpot.x, squareSpot.y, squareSpot.z);
   const pier2Nodes = [wn(-2.8, 0.72, -10.3), wn(-6.6, 0.72, -10.3), wn(-10.2, 0.72, -10.3)];
   const bankNodes = [];
   for (let k = 0; k <= 6; k++) {
@@ -386,7 +386,7 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
     Math.hypot(x - 7, z - 2) < 3.6 ||                                 // 85 大樓
     Math.hypot(x - WHEEL.x, z - WHEEL.z) < 4.6 ||                     // 摩天輪
     (x > -12.4 && x < -0.8 && z > -14 && z < -10.2) ||                // 駁二
-    Math.hypot(x - heroSpot.x, z - heroSpot.z) < 2.6 ||               // 小廣場
+    Math.hypot(x - squareSpot.x, z - squareSpot.z) < 2.6 ||               // 小廣場
     (x > HIGHWAY_X - 2 && x < HIGHWAY_X + 2 && z < -11.5) ||           // 縱貫線進城的路
     nearRiver(x, z, 1.7) ||
     nearWalk(x, z, 1.2);
@@ -603,7 +603,7 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   ], true, "centripetal");
   const shipLen = shipPath.getLength();
   const DOCK_U = 5 / 13;
-  const shipState = { u: 0.02, pause: 0, docked: false };
+  const shipState = { u: 0.02, pause: 0 };
 
   // ---------- 旗津渡輪：雙頭船，下層載機車、上層客艙，在灣口兩岸之間來回 ----------
   // 船的長邊沿著本地 x 軸；原點在水線附近
