@@ -1653,11 +1653,12 @@
         }
       }
 
-      function updateBuddy(b, dt, t) {
+      // passedNode：這一格已經走過路口、接著用剩下的距離繼續走（不再多算這一格的時間）
+      function updateBuddy(b, dt, t, passedNode = false) {
         const w = b.walk;
         const tail = b.body.userData.tail;
         if (tail) tail.rotation.z = Math.sin(t * 3 + w.hop) * 0.5;
-        b.drunk = Math.max(0, b.drunk - dt / 45);
+        if (!passedNode) b.drunk = Math.max(0, b.drunk - dt / 45);
         // 乾杯中：舉起啤酒杯，原地開心地跳
         if (w.toast > 0) {
           w.toast -= dt;
@@ -1679,6 +1680,7 @@
         const from = walkNodes[w.path[w.seg]];
         const to = walkNodes[w.path[w.seg + 1]];
         if (!to) {
+          w.carry = 0;
           if (b.isPlayer) {
             idlePose(b, t);
             destMarker.visible = false;
@@ -1688,17 +1690,21 @@
           return;
         }
         if (ferryEdges.has(edgeKey(w.path[w.seg], w.path[w.seg + 1]))) {
+          w.carry = 0;
           rideFerry(b, from, to, dt, t);
           return;
         }
         const d = Math.min(b.drunk, 5) / 5;
-        // 在公路上走快一點，喝醉了走得慢；你點擊指揮的角色走 3 倍快
+        // 在公路上走快一點，喝醉了走得慢；你點擊指揮的角色至少 3 倍快，路上經過幾個縣市就幾倍快
         let speed = from.city === "highway" || to.city === "highway" ? 3.4 : 1.7;
         speed *= 1 - d * 0.3;
-        if (b.isPlayer) speed *= 3;
+        if (b.isPlayer) speed *= w.rush || 3;
         const len = Math.max(from.p.distanceTo(to.p), 0.001);
-        w.along += (speed * dt) / len;
+        w.along += ((passedNode ? 0 : speed * dt) + (w.carry || 0)) / len;
+        w.carry = 0;
         if (w.along >= 1) {
+          // 走快的時候一格可能跨過路口，多走的距離留到下一段，速度才不會被路口吃掉
+          w.carry = Math.min((w.along - 1) * len, 30);
           w.seg += 1;
           w.along = 0;
           w.node = w.path[w.seg];
@@ -1707,7 +1713,8 @@
             w.lastCity = city;
             log(`${b.def.name} 抵達${cities[city].title}！`);
           }
-          return;
+          // 剩下的距離這一格接著走完，走很快時一格可以連過好幾個路口
+          return updateBuddy(b, dt, t, true);
         }
         b.root.position.lerpVectors(from.p, to.p, w.along);
         const dirX = to.p.x - from.p.x;
@@ -2346,6 +2353,11 @@
         const rest = walkPath(next, dest);
         w.path = moving ? [w.path[w.seg], ...rest] : rest;
         w.seg = 0;
+        // 一路上會經過幾個其他縣市（含目的地）就走幾倍快，例如經過 4 個就 4 倍；少於 3 個維持 3 倍
+        const passed = new Set(w.path.map(i => walkNodes[i].city));
+        passed.delete("highway");
+        passed.delete(w.lastCity);
+        w.rush = Math.max(3, passed.size);
         if (!moving) w.along = 0;
         w.pause = 0;
         w.toast = 0;
