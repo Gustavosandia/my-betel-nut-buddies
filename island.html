@@ -77,6 +77,20 @@
       }
       #islands button:hover { background: rgba(219, 106, 65, 0.12); }
       #islands button.active { background: var(--brand); color: #fff; }
+      #islands select {
+        border: 0;
+        background: rgba(219, 106, 65, 0.12);
+        color: var(--ink);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 8px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        max-width: 190px;
+      }
+      #islands select.active { background: var(--brand); color: #fff; }
+      #islands select option, #islands select optgroup { background: #fff; color: var(--ink); }
 
       /* 角色卡 */
       #card {
@@ -370,7 +384,8 @@
       @media (max-width: 760px) {
         header h1 { font-size: 22px; }
         #log { display: none; }
-        #islands { left: 12px; right: 12px; transform: none; overflow-x: auto; bottom: 76px; }
+        #islands { left: 12px; right: 12px; transform: none; justify-content: center; bottom: 76px; }
+        #islands select { flex: 1; min-width: 0; max-width: none; }
         #islands button { padding: 7px 10px; font-size: 13px; }
         #card { left: 12px; right: 12px; width: auto; bottom: 140px; padding: 14px; }
         /* 手機上展開時最多佔半個畫面，內容太長就在卡片裡捲動 */
@@ -392,12 +407,29 @@
     <script src="js/cities/taipei.js"></script>
     <script src="js/cities/changhua.js"></script>
     <script src="js/cities/kaohsiung.js"></script>
+    <script src="js/cities/kit.js"></script>
+    <script src="js/cities/keelung.js"></script>
+    <script src="js/cities/newtaipei.js"></script>
+    <script src="js/cities/taoyuan.js"></script>
+    <script src="js/cities/hsinchucity.js"></script>
+    <script src="js/cities/hsinchu.js"></script>
+    <script src="js/cities/miaoli.js"></script>
+    <script src="js/cities/taichung.js"></script>
+    <script src="js/cities/nantou.js"></script>
+    <script src="js/cities/yunlin.js"></script>
+    <script src="js/cities/chiayicity.js"></script>
+    <script src="js/cities/chiayi.js"></script>
+    <script src="js/cities/tainan.js"></script>
+    <script src="js/cities/pingtung.js"></script>
+    <script src="js/cities/taitung.js"></script>
+    <script src="js/cities/hualien.js"></script>
+    <script src="js/cities/yilan.js"></script>
 </head>
 <body class="overview">
     <div id="intro">
         <small>HELLO, DRUNK ISLANDS</small>
         <h1>嗨，<span class="userName"></span></h1>
-        <p>蛙哥、貓哥、冠子さん正在三座島上集合…</p>
+        <p>正在把台灣 19 個縣市一座一座排好…</p>
     </div>
 
     <div id="scene"></div>
@@ -405,14 +437,14 @@
     <header>
         <small>FUTURE SOON.</small>
         <h1>DRUNK 酒肉檳友島</h1>
-        <p id="cityLine">三座島、三個酒肉檳友，一條縱貫線</p>
+        <p id="cityLine">19 座縣市島、三個酒肉檳友，一條環島公路</p>
     </header>
 
     <nav id="islands" class="panel" aria-label="切換島嶼">
-        <button data-key="overview" class="active">🌏 全景</button>
-        <button data-key="taipei">🏙️ 台北天龍城</button>
-        <button data-key="changhua">🥟 彰化肉圓城</button>
-        <button data-key="kaohsiung">⚓ 高雄港城</button>
+        <button id="navOverview" class="active" type="button">🌏 全景</button>
+        <button id="prevCity" type="button" title="上一站" aria-label="上一站">◀</button>
+        <select id="citySelect" aria-label="選擇縣市"></select>
+        <button id="nextCity" type="button" title="下一站" aria-label="下一站">▶</button>
     </nav>
 
     <section id="card" class="panel">
@@ -600,7 +632,7 @@
       const scene = new THREE.Scene();
       scene.fog = new THREE.Fog(0xf6d9b8, 60, 140);
 
-      const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 1500);
+      const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 5000);
       camera.position.set(200, 140, 10);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -622,7 +654,7 @@
       controls.autoRotateSpeed = 0.6;
       controls.zoomSpeed = 3; // 滾輪縮放速度，預設 1，數字越大越快
       controls.minDistance = 80;
-      controls.maxDistance = 420;
+      controls.maxDistance = 2000;
       controls.maxPolarAngle = Math.PI * 0.47;
 
       const hemi = new THREE.HemisphereLight(0xfff4e0, 0x8a6b52, 0.9);
@@ -715,7 +747,7 @@
       }
 
       // ---------- 海面（波光粼粼）：浪在頂點著色器裡算，海再大也不會拖慢 ----------
-      const SEA = 1400;
+      const SEA = 3200;
       const seaTime = { value: 0 };
       const waterGeo = new THREE.PlaneGeometry(SEA, SEA, 320, 320);
       waterGeo.rotateX(-Math.PI / 2);
@@ -745,11 +777,11 @@
       scene.add(water);
 
       // 海面上一閃一閃的光點，高度公式與海浪相同，才會貼著浪面
-      const SPARKS = 14000;
+      const SPARKS = 34000;
       const sparkPos = new Float32Array(SPARKS * 3);
       const sparkPhase = new Float32Array(SPARKS);
       for (let i = 0; i < SPARKS; i++) {
-        sparkPos.set([(Math.random() - 0.5) * 520, 0, (Math.random() - 0.5) * 520], i * 3);
+        sparkPos.set([(Math.random() - 0.5) * 640, 0, -40 + (Math.random() - 0.5) * 950], i * 3);
         sparkPhase[i] = Math.random();
       }
       const sparkGeo = new THREE.BufferGeometry();
@@ -790,152 +822,216 @@
       });
       scene.add(new THREE.Points(sparkGeo, sparkMat));
 
-      // ---------- 三座城市：各自寫在 js/cities/*.js ----------
-      // 位置大致照台灣地理：台北在北（-z）、彰化在中間、高雄在南（+z）
-      // 島和島之間（沙灘邊到沙灘邊）大約隔一座西螺大橋的長度（18）
+      // ---------- 19 座縣市島：每個縣市在 js/cities/ 底下各有一個檔案（16 座小島共用 kit.js 的積木工具） ----------
+      // 位置照台灣本島的相對方位擺：x 往東、z 往南。西岸由北到南一路排下來，東岸是宜蘭、花蓮、台東，
+      // 南投、新竹縣、嘉義縣在內陸。每座島一樣大（半徑 20），島和島之間留一段海給跨海大橋
       const CITY_LAYOUT = [
-        { key: "taipei", pos: new THREE.Vector3(8, 0, -55) },
-        { key: "changhua", pos: new THREE.Vector3(0, 0, 0) },
-        { key: "kaohsiung", pos: new THREE.Vector3(-6, 0, 55) },
-      ];
+        { key: "keelung", pos: [137, -353], region: "北部" },
+        { key: "taipei", pos: [77, -329], region: "北部" },
+        { key: "newtaipei", pos: [17, -297], region: "北部" },
+        { key: "taoyuan", pos: [-31, -259], region: "北部" },
+        { key: "hsinchucity", pos: [-67, -210], region: "北部" },
+        { key: "hsinchu", pos: [-11, -196], region: "北部" },
+        { key: "yilan", pos: [126, -238], region: "北部" },
+        { key: "miaoli", pos: [-87, -151], region: "中部" },
+        { key: "taichung", pos: [-95, -92], region: "中部" },
+        { key: "changhua", pos: [-119, -28], region: "中部" },
+        { key: "nantou", pos: [-39, -39], region: "中部" },
+        { key: "yunlin", pos: [-129, 39], region: "中部" },
+        { key: "chiayicity", pos: [-123, 95], region: "南部" },
+        { key: "chiayi", pos: [-63, 87], region: "南部" },
+        { key: "tainan", pos: [-137, 151], region: "南部" },
+        { key: "kaohsiung", pos: [-119, 221], region: "南部" },
+        { key: "pingtung", pos: [-63, 273], region: "南部" },
+        { key: "hualien", pos: [98, -70], region: "東部" },
+        { key: "taitung", pos: [42, 154], region: "東部" },
+      ].filter(c => {
+        const ok = window.HeartCities && window.HeartCities[c.key];
+        if (!ok) console.error(`找不到城市 ${c.key}，請確認 js/cities/ 底下的檔案有正確載入`);
+        return ok;
+      });
+      const layoutOf = Object.fromEntries(CITY_LAYOUT.map(c => [c.key, c]));
+      // 環島公路：順時針繞台灣一圈，再加三條通往內陸的支線
+      const ROADS = [
+        ["taipei", "newtaipei", "台 1 線・縱貫公路"],
+        ["newtaipei", "taoyuan", "台 1 線・縱貫公路"],
+        ["taoyuan", "hsinchucity", "台 1 線・縱貫公路"],
+        ["hsinchucity", "miaoli", "台 1 線・縱貫公路"],
+        ["miaoli", "taichung", "台 1 線・縱貫公路"],
+        ["taichung", "changhua", "台 1 線・縱貫公路"],
+        ["changhua", "yunlin", "台 1 線・縱貫公路"],
+        ["yunlin", "chiayicity", "台 1 線・縱貫公路"],
+        ["chiayicity", "tainan", "台 1 線・縱貫公路"],
+        ["tainan", "kaohsiung", "台 1 線・縱貫公路"],
+        ["kaohsiung", "pingtung", "台 1 線・縱貫公路"],
+        ["pingtung", "taitung", "台 9 線・南迴公路"],
+        ["taitung", "hualien", "台 9 線・花東公路"],
+        ["hualien", "yilan", "台 9 線・蘇花公路"],
+        ["yilan", "keelung", "台 2 線・濱海公路"],
+        ["keelung", "taipei", "台 5 線"],
+        ["hsinchucity", "hsinchu", "台 68 線"],
+        ["taichung", "nantou", "台 14 線"],
+        ["chiayicity", "chiayi", "台 18 線・阿里山公路"],
+      ].filter(([a, b]) => layoutOf[a] && layoutOf[b]);
+      // 「上一站／下一站」的順序：從台北出發順時針環島，內陸的島排在它連接的那座島後面
+      const TOUR = ["taipei", "newtaipei", "taoyuan", "hsinchucity", "hsinchu", "miaoli", "taichung", "nantou", "changhua", "yunlin",
+        "chiayicity", "chiayi", "tainan", "kaohsiung", "pingtung", "taitung", "hualien", "yilan", "keelung"].filter(k => layoutOf[k]);
+      // 每座島的公路出入口：朝著隔壁島的方向
+      const portsOf = key => ROADS.filter(r => r[0] === key || r[1] === key).map(r => {
+        const other = r[0] === key ? r[1] : r[0];
+        const dx = layoutOf[other].pos[0] - layoutOf[key].pos[0];
+        const dz = layoutOf[other].pos[1] - layoutOf[key].pos[1];
+        const len = Math.hypot(dx, dz);
+        return { key: other, dir: { x: dx / len, z: dz / len } };
+      });
       const cities = {};
-      CITY_LAYOUT.forEach(({ key, pos }) => {
-        const build = window.HeartCities && window.HeartCities[key];
-        if (!build) {
-          console.error(`找不到城市 ${key}，請確認 js/cities/${key}.js 有正確載入`);
-          return;
-        }
-        const city = build({
-          THREE, mat, beam, addLabel, cityMaterial, roles, roleIndex, name,
+      // 每座島自己的地標標籤：只有鏡頭在那座島時才顯示，畫面才不會被 19 座島的標籤塞滿
+      const labelsByCity = {};
+      CITY_LAYOUT.forEach(({ key, pos, region }) => {
+        labelsByCity[key] = [];
+        const city = window.HeartCities[key]({
+          THREE, mat, beam, cityMaterial, roles, roleIndex, name,
           hexRadius, insideHex, hexPrism, hexFoam,
+          addLabel: (...args) => { const label = addLabel(...args); labelsByCity[key].push(label); return label; },
+          ports: portsOf(key),
           rand: mulberry32(hashString(key)),
         });
-        city.group.position.copy(pos);
+        city.region = region;
+        city.group.position.set(pos[0], 0, pos[1]);
         city.group.userData.cityKey = key;
         // 全景時顯示在島上方的大島名
-        addLabel(`${city.icon} ${city.title}`, city.group, 26, "island-name");
+        addLabel(`${city.icon} ${city.title}`, city.group, city.nameY ?? 26, "island-name");
         scene.add(city.group);
         cities[key] = city;
       });
 
-      // ---------- 縱貫線：一條公路從台北一路開到高雄，把三座島串起來 ----------
-      // 座標是世界座標：在島上貼著地面（y≈0.78），跨海時變成高架橋（y≈2）
-      // 在彰化沿著島的東北、東南海岸繞過去，會和西螺大橋的引道交會
+      // ---------- 環島公路：島與島之間各一座跨海大橋，出了島就爬升成高架橋 ----------
       const highway = new THREE.Group();
       highway.userData.clickable = "highway";
-      const hwCurve = new THREE.CatmullRomCurve3([
-        [10, 0.78, -39.8], [10, 0.78, -37.9], [9.8, 1.9, -33.5], [9.2, 2.1, -27], [8.5, 1.9, -20.5],
-        [8.2, 0.78, -16.6], [8.2, 0.78, -14.8], [12.3, 0.78, -7.6], [16.6, 0.78, 0], [12.3, 0.78, 7.6],
-        [8.2, 0.78, 14.8], [8.2, 0.78, 16.6], [7, 1.9, 20.5], [4, 2.1, 27], [1.2, 1.9, 33.5],
-        [0, 0.78, 37.9], [0, 0.78, 43],
-      ].map(([x, y, z]) => new THREE.Vector3(x, y, z)), false, "centripetal");
-      const HW_N = 560;
-      const hwFrames = [];
-      for (let i = 0; i <= HW_N; i++) {
-        const p = hwCurve.getPointAt(i / HW_N);
-        const t = hwCurve.getTangentAt(i / HW_N);
-        // side 指向行進方向的右手邊
-        hwFrames.push({ p, t, side: new THREE.Vector3(-t.z, 0, t.x).normalize() });
-      }
-      // 沿著公路拉一條有厚度的帶子：offset 是離中心線的距離，lift 是抬高多少
-      function ribbon(offset, width, lift, thick, material, from = 0, to = HW_N) {
-        const pos = [];
-        const idx = [];
+      // 所有路段的路面、標線、護欄各合併成一個網格，橋再多也只多三個繪製指令
+      const strips = { road: { pos: [], idx: [] }, line: { pos: [], idx: [] }, rail: { pos: [], idx: [] } };
+      // 沿著路段拉一條有厚度的帶子：offset 是離中心線的距離，lift 是抬高多少
+      function ribbon(buf, frames, offset, width, lift, thick, from = 0, to = frames.length - 1) {
+        const base = buf.pos.length / 3;
         for (let i = from; i <= to; i++) {
-          const { p, side } = hwFrames[i];
+          const { p, side } = frames[i];
           const l = p.clone().addScaledVector(side, offset - width / 2);
           const r = p.clone().addScaledVector(side, offset + width / 2);
-          pos.push(l.x, l.y + lift, l.z, r.x, r.y + lift, r.z, l.x, l.y + lift - thick, l.z, r.x, r.y + lift - thick, r.z);
+          buf.pos.push(l.x, l.y + lift, l.z, r.x, r.y + lift, r.z, l.x, l.y + lift - thick, l.z, r.x, r.y + lift - thick, r.z);
         }
         for (let i = 0; i < to - from; i++) {
-          const a = i * 4;
+          const a = base + i * 4;
           const b = a + 4;
-          idx.push(a, a + 1, b, a + 1, b + 1, b);             // 頂面
-          idx.push(a, b, a + 2, b, b + 2, a + 2);             // 左側面
-          idx.push(a + 1, a + 3, b + 1, b + 1, a + 3, b + 3); // 右側面
+          buf.idx.push(a, a + 1, b, a + 1, b + 1, b);             // 頂面
+          buf.idx.push(a, b, a + 2, b, b + 2, a + 2);             // 左側面
+          buf.idx.push(a + 1, a + 3, b + 1, b + 1, a + 3, b + 3); // 右側面
         }
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-        geo.setIndex(idx);
-        geo.computeVertexNormals();
-        const m = new THREE.Mesh(geo, material);
-        m.castShadow = true;
-        m.receiveShadow = true;
-        return m;
       }
-      highway.add(ribbon(0, 1.8, 0.04, 0.35, mat(0x55585e)));
-      const lineWhite = mat(0xf4f4f2);
-      highway.add(ribbon(-0.78, 0.08, 0.05, 0.02, lineWhite), ribbon(0.78, 0.08, 0.05, 0.02, lineWhite));
-      // 黃色中線（虛線）
-      const dashIdx = [];
-      for (let i = 2; i < HW_N; i += 6) dashIdx.push(i);
-      const dashes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.02, 0.55), mat(0xf2c230), dashIdx.length);
+      const roads = [];
+      const dashAt = [];
+      const pierAt = [];
+      const carColors = [0xd8333a, 0x2f6fb5, 0xf2c230, 0xf4f4f2, 0x3fa66b, 0x26262a, 0xe98a2f];
+      const hwCars = [];
+      ROADS.forEach(([aKey, bKey, label], ri) => {
+        const A = cities[aKey];
+        const B = cities[bKey];
+        const a = A.walk.nodes[A.walk.ports[bKey]].clone().add(A.group.position);
+        const b = B.walk.nodes[B.walk.ports[aKey]].clone().add(B.group.position);
+        const len = Math.hypot(b.x - a.x, b.z - a.z);
+        const perp = new THREE.Vector3(-(b.z - a.z) / len, 0, (b.x - a.x) / len);
+        // 每條橋稍微往一側彎，看起來比較不死板
+        const bulge = (ri % 2 ? 1 : -1) * Math.min(4, len * 0.06);
+        const N = Math.ceil(len * 3.5);
+        const pts = [];
+        for (let i = 0; i <= N; i++) {
+          const s = i / N;
+          const p = a.clone().lerp(b, s).addScaledVector(perp, bulge * Math.sin(s * Math.PI));
+          // 離島 6 個單位內慢慢爬升，中間維持在海面上的高架高度
+          p.y += 1.3 * THREE.MathUtils.smoothstep(Math.min(s, 1 - s) * len, 0.5, 6);
+          pts.push(p);
+        }
+        const frames = pts.map((p, i) => {
+          const t = pts[Math.min(N, i + 1)].clone().sub(pts[Math.max(0, i - 1)]).normalize();
+          // side 指向行進方向的右手邊
+          return { p, t, side: new THREE.Vector3(-t.z, 0, t.x).normalize() };
+        });
+        ribbon(strips.road, frames, 0, 1.8, 0.04, 0.35);
+        ribbon(strips.line, frames, -0.78, 0.08, 0.05, 0.02);
+        ribbon(strips.line, frames, 0.78, 0.08, 0.05, 0.02);
+        for (let i = 2; i < N; i += 6) dashAt.push(frames[i]);
+        // 跨海的高架段：護欄＋橋墩
+        const high = frames.map(f => f.p.y > Math.max(a.y, b.y) + 0.45);
+        const first = high.indexOf(true);
+        const last = high.lastIndexOf(true);
+        if (first >= 0) {
+          ribbon(strips.rail, frames, -0.95, 0.08, 0.42, 0.34, first, last);
+          ribbon(strips.rail, frames, 0.95, 0.08, 0.42, 0.34, first, last);
+          for (let k = first + 6; k <= last - 6; k += 12) pierAt.push(frames[k]);
+        }
+        // 每條橋上兩台車，一來一往
+        for (let k = 0; k < 2; k++) {
+          const car = new THREE.Group();
+          const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.24, 0.42), mat(carColors[(ri * 2 + k) % carColors.length], { flatShading: false }));
+          body.position.y = 0.2;
+          const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.2, 0.38), mat(0x2b3a4a));
+          cabin.position.set(-0.05, 0.4, 0);
+          car.add(body, cabin);
+          car.traverse(o => { if (o.isMesh) o.castShadow = true; });
+          highway.add(car);
+          hwCars.push({ car, frames, u: Math.random(), dir: k ? 1 : -1, speed: (2 + Math.random()) / len });
+        }
+        const anchor = new THREE.Object3D();
+        anchor.position.copy(pts[Math.floor(N / 2)]);
+        highway.add(anchor);
+        // 公路名稱只在鏡頭看著它連接的島時顯示
+        roads.push({ aKey, bKey, frames, label: addLabel(label, anchor, 2.2) });
+      });
+      const stripMesh = (buf, material) => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.Float32BufferAttribute(buf.pos, 3));
+        geo.setIndex(buf.idx);
+        geo.computeVertexNormals();
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        highway.add(mesh);
+      };
+      stripMesh(strips.road, mat(0x55585e));
+      stripMesh(strips.line, mat(0xf4f4f2));
+      stripMesh(strips.rail, mat(0xd9dcdf));
+      // 黃色中線（虛線）與橋墩都用 InstancedMesh 一次畫完
       const dummy = new THREE.Object3D();
-      dashIdx.forEach((i, k) => {
-        const { p, t } = hwFrames[i];
+      const dashes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.02, 0.55), mat(0xf2c230), dashAt.length);
+      dashAt.forEach(({ p, t }, k) => {
         dummy.position.set(p.x, p.y + 0.06, p.z);
-        dummy.lookAt(p.x + t.x, p.y + 0.06, p.z + t.z);
+        dummy.scale.set(1, 1, 1);
+        dummy.lookAt(p.x + t.x, p.y + 0.06 + t.y, p.z + t.z);
         dummy.updateMatrix();
         dashes.setMatrixAt(k, dummy.matrix);
       });
-      highway.add(dashes);
-      // 跨海的高架段：護欄＋橋墩
-      const railMat = mat(0xd9dcdf);
-      const pierMat = mat(0xb8b2a6);
-      let start = -1;
-      for (let i = 0; i <= HW_N; i++) {
-        const high = hwFrames[i].p.y > 1.2;
-        if (high && start < 0) start = i;
-        if ((!high || i === HW_N) && start >= 0) {
-          const end = high ? i : i - 1;
-          highway.add(ribbon(-0.95, 0.08, 0.42, 0.34, railMat, start, end), ribbon(0.95, 0.08, 0.42, 0.34, railMat, start, end));
-          for (let k = start + 4; k <= end - 4; k += 12) {
-            const { p, side } = hwFrames[k];
-            if (p.y < 1.6) continue;
-            for (const off of [-0.55, 0.55]) {
-              const h = p.y - 0.3 + 3;
-              const pier = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, h, 8), pierMat);
-              pier.position.set(p.x + side.x * off, p.y - 0.3 - h / 2, p.z + side.z * off);
-              pier.castShadow = true;
-              highway.add(pier);
-            }
-          }
-          start = -1;
-        }
-      }
-      // 路上的車：往高雄的走右側車道，往台北的走另一側
-      const carColors = [0xd8333a, 0x2f6fb5, 0xf2c230, 0xf4f4f2, 0x3fa66b, 0x26262a, 0xe98a2f];
-      const hwCars = [];
-      for (let k = 0; k < 12; k++) {
-        const car = new THREE.Group();
-        const paint = mat(carColors[k % carColors.length], { flatShading: false });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.24, 0.42), paint);
-        body.position.y = 0.2;
-        const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.2, 0.38), mat(0x2b3a4a));
-        cabin.position.set(-0.05, 0.4, 0);
-        car.add(body, cabin);
-        car.traverse(o => { if (o.isMesh) o.castShadow = true; });
-        highway.add(car);
-        hwCars.push({ car, u: k / 12, dir: k % 2 ? 1 : -1, speed: 0.012 + Math.random() * 0.006 });
-      }
+      const piers = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.2, 1, 8), mat(0xb8b2a6), pierAt.length * 2);
+      dummy.rotation.set(0, 0, 0);
+      pierAt.forEach(({ p, side }, k) => {
+        [-0.55, 0.55].forEach((off, j) => {
+          const h = p.y + 2.7;
+          dummy.position.set(p.x + side.x * off, p.y - 0.3 - h / 2, p.z + side.z * off);
+          dummy.scale.set(1, h, 1);
+          dummy.updateMatrix();
+          piers.setMatrixAt(k * 2 + j, dummy.matrix);
+        });
+      });
+      piers.castShadow = true;
+      highway.add(dashes, piers);
+      // 車子靠右走：到了橋的另一頭就從這一頭重新出發
       function updateHighway(dt) {
         hwCars.forEach(c => {
           c.u = (c.u + c.dir * c.speed * dt + 1) % 1;
-          const p = hwCurve.getPointAt(c.u);
-          const t = hwCurve.getTangentAt(c.u);
-          const side = new THREE.Vector3(-t.z, 0, t.x).normalize();
+          const { p, t, side } = c.frames[Math.round(c.u * (c.frames.length - 1))];
           c.car.position.set(p.x + side.x * 0.42 * c.dir, p.y + 0.04, p.z + side.z * 0.42 * c.dir);
           c.car.rotation.y = Math.atan2(-t.z * c.dir, t.x * c.dir);
         });
       }
       scene.add(highway);
-      [0.18, 0.82].forEach(u => {
-        const anchor = new THREE.Object3D();
-        anchor.position.copy(hwCurve.getPointAt(u));
-        highway.add(anchor);
-        addLabel("台 1 線・縱貫公路", anchor, 2.2);
-      });
-
 
       // ---------- 三位酒肉檳友：蛙哥（高雄）、貓哥（台北）、變態怪人冠子さん（彰化） ----------
       // 共用一副骨架：外層 root 負責位置與面向，內層 body 負責蹦跳；腳底在 y = 0，頭的中心在 y = 2.75
@@ -1394,7 +1490,7 @@
         window.ISLAND.showCard(b.def.key);
         log(buddyLine(b));
         let cityKey = walkNodes[b.walk.node].city;
-        // 走在縱貫線上時，飛到離他最近的那座島
+        // 走在公路上時，飛到離他最近的那座島
         if (cityKey === "highway") {
           cityKey = Object.values(cities).reduce((best, c) =>
             c.group.position.distanceTo(b.root.position) < best.group.position.distanceTo(b.root.position) ? c : best).key;
@@ -1413,7 +1509,7 @@
         hat.traverse(o => { if (o.isMesh) o.castShadow = true; });
       }
 
-      // ---------- 走路網：三座島各自的路網，再用縱貫線串起來 ----------
+      // ---------- 走路網：每座島各自的路網，再用環島公路串起來 ----------
       // 每個節點：世界座標 p、屬於哪座城（或 "highway"）、相鄰節點
       const walkNodes = [];
       const addWalkNode = (p, city, tag) => { walkNodes.push({ p, city, tag, next: new Set() }); return walkNodes.length - 1; };
@@ -1421,7 +1517,7 @@
       const ferryEdges = new Set();
       const edgeKey = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
       const linkWalk = (a, b) => { walkNodes[a].next.add(b); walkNodes[b].next.add(a); };
-      const cityGates = {};
+      const cityBase = {};
       const cityNodes = {};
       Object.values(cities).forEach(c => {
         const base = walkNodes.length;
@@ -1431,17 +1527,22 @@
           linkWalk(base + a, base + b);
           ferryEdges.add(edgeKey(base + a, base + b));
         });
-        cityGates[c.key] = base + c.walk.gate;
+        cityBase[c.key] = base;
         cityNodes[c.key] = c.walk.nodes.map((_, i) => base + i);
       });
-      // 縱貫線每隔幾個取樣點放一個節點，走在黃線上（兩邊車道的中間）
+      // 公路每隔幾個取樣點放一個節點，走在黃線上（兩邊車道的中間）
       const highwayNodes = [];
-      for (let i = 0; i <= HW_N; i += 4) highwayNodes.push(addWalkNode(hwFrames[i].p.clone().setY(hwFrames[i].p.y + 0.05), "highway"));
-      for (let k = 0; k < highwayNodes.length - 1; k++) linkWalk(highwayNodes[k], highwayNodes[k + 1]);
-      Object.values(cityGates).forEach(g => {
-        let best = highwayNodes[0];
-        highwayNodes.forEach(h => { if (walkNodes[h].p.distanceTo(walkNodes[g].p) < walkNodes[best].p.distanceTo(walkNodes[g].p)) best = h; });
-        linkWalk(g, best);
+      // 每座島隔壁有哪些島（其他角色閒逛時只會去隔壁島）
+      const cityLinks = {};
+      roads.forEach(({ aKey, bKey, frames }) => {
+        const chain = [];
+        for (let i = 2; i < frames.length - 1; i += 4) chain.push(addWalkNode(frames[i].p.clone().setY(frames[i].p.y + 0.05), "highway"));
+        for (let k = 0; k < chain.length - 1; k++) linkWalk(chain[k], chain[k + 1]);
+        linkWalk(cityBase[aKey] + cities[aKey].walk.ports[bKey], chain[0]);
+        linkWalk(cityBase[bKey] + cities[bKey].walk.ports[aKey], chain[chain.length - 1]);
+        highwayNodes.push(...chain);
+        (cityLinks[aKey] ||= []).push(bKey);
+        (cityLinks[bKey] ||= []).push(aKey);
       });
 
       function walkPath(from, to) {
@@ -1461,17 +1562,17 @@
       const pickFrom = arr => arr[Math.floor(Math.random() * arr.length)];
       const whereIs = b => {
         const city = walkNodes[b.walk.node].city;
-        return city === "highway" ? "縱貫線上" : cities[city].title;
+        return city === "highway" ? "環島公路上" : cities[city].title;
       };
-      // 規劃下一趟：大部分在現在這座島上閒晃，偶爾沿著縱貫線跑去別的島
+      // 規劃下一趟：大部分在現在這座島上閒晃，偶爾沿著公路跑去隔壁島
       function planTrip(b) {
         const w = b.walk;
         const here = walkNodes[w.node].city === "highway" ? w.lastCity : walkNodes[w.node].city;
         let dest;
         if (Math.random() < 0.28) {
-          const other = pickFrom(Object.keys(cityNodes).filter(k => k !== here));
+          const other = pickFrom(cityLinks[here]);
           dest = pickFrom(cityNodes[other]);
-          log(`${b.def.name} 沿著台 1 線出發，要去${cities[other].title}走跳！`);
+          log(`${b.def.name} 沿著環島公路出發，要去隔壁的${cities[other].title}走跳！`);
         } else {
           dest = pickFrom(cityNodes[here]);
         }
@@ -1591,7 +1692,7 @@
           return;
         }
         const d = Math.min(b.drunk, 5) / 5;
-        // 在縱貫線上走快一點，喝醉了走得慢；你點擊指揮的角色走 3 倍快
+        // 在公路上走快一點，喝醉了走得慢；你點擊指揮的角色走 3 倍快
         let speed = from.city === "highway" || to.city === "highway" ? 3.4 : 1.7;
         speed *= 1 - d * 0.3;
         if (b.isPlayer) speed *= 3;
@@ -1806,10 +1907,10 @@
         });
       }
 
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 56; i++) {
         const cloud = new THREE.Group();
         shapeCloud(cloud);
-        cloud.position.set(rnd(-130, 130), cloud.userData.baseY, rnd(-150, 150));
+        cloud.position.set(rnd(-240, 240), cloud.userData.baseY, rnd(-420, 350));
         scene.add(cloud);
         clouds.push(cloud);
       }
@@ -1824,9 +1925,9 @@
           c.children.forEach(p => {
             p.scale.copy(p.userData.base).multiplyScalar(1 + Math.sin(t * 0.35 + p.userData.phase) * 0.07);
           });
-          if (c.position.x > 130 || Math.abs(c.position.z) > 160) {
+          if (c.position.x > 240 || c.position.z > 365 || c.position.z < -435) {
             shapeCloud(c);
-            c.position.set(-130, c.userData.baseY, rnd(-150, 150));
+            c.position.set(-240, c.userData.baseY, rnd(-420, 350));
           }
         });
       }
@@ -1969,9 +2070,9 @@
       const whaleOrbit = { center: new THREE.Vector3(), radius: 30, height: 16, speed: 0.045 };
       function updateWhale(t) {
         const overview = focusKey === "overview";
-        whaleOrbit.center.lerp(overview ? new THREE.Vector3(0, 0, 0) : focusPoint(cities[focusKey]), 0.01);
-        whaleOrbit.radius += ((overview ? 50 : 30) - whaleOrbit.radius) * 0.01;
-        whaleOrbit.height += ((overview ? 30 : 16) - whaleOrbit.height) * 0.01;
+        whaleOrbit.center.lerp(overview ? OVERVIEW.target : focusPoint(cities[focusKey]), 0.01);
+        whaleOrbit.radius += ((overview ? 170 : 30) - whaleOrbit.radius) * 0.01;
+        whaleOrbit.height += ((overview ? 60 : 16) - whaleOrbit.height) * 0.01;
         const a = t * whaleOrbit.speed;
         const y = whaleOrbit.height + Math.sin(t * 0.8) * 0.9;
         const c = whaleOrbit.center;
@@ -2055,8 +2156,8 @@
       const whaleEvents = [
         () => "一隻粉紅鯨魚慢悠悠地游過群島上空。",
         () => `粉紅鯨魚噴出一道小水柱，${name} 抬頭看得目不轉睛。`,
-        () => "台 1 線上車流不斷，一台貨車載著西螺米開往高雄港。",
-        () => "縱貫線的高架橋跨過海面，從台北一路串到高雄。",
+        () => "環島公路上車流不斷，一台貨車載著西螺米開往高雄港。",
+        () => "環島公路的跨海大橋一座接一座，把 19 座島串成一圈。",
       ];
       setInterval(() => {
         if (!playing) return;
@@ -2075,13 +2176,25 @@
 
       // ---------- 鏡頭飛行：全景 ↔ 各島 ----------
       let focusKey = "overview";
-      // 全景從東側看過去，台北在右、高雄在左，整串群島橫躺在畫面上
-      const OVERVIEW = { target: new THREE.Vector3(2, 0, -6), offset: new THREE.Vector3(145, 112, 6), min: 50, max: 360, shadow: 95 };
+      // 全景像看地圖一樣：從南邊高處往北看，北方朝上；直式螢幕（手機）比較窄，鏡頭再拉遠一點
+      const OVERVIEW = {
+        target: new THREE.Vector3(0, 0, -20),
+        offset: innerWidth >= innerHeight ? new THREE.Vector3(28, 900, 475) : new THREE.Vector3(17, 1200, 560),
+        min: 170, max: 2000, shadow: 400,
+      };
       const CITY_VIEW = { offset: new THREE.Vector3(27, 22, 34), min: 14, max: 90, shadow: 42 };
       const travel = { t: 1, dur: 2.4, fromPos: new THREE.Vector3(), fromTarget: new THREE.Vector3(), toPos: new THREE.Vector3(), toTarget: new THREE.Vector3(), view: OVERVIEW };
       const focusPoint = city => city.group.position.clone().add(city.focus);
       const cityLine = document.getElementById("cityLine");
-      const navButtons = document.querySelectorAll("#islands button");
+      const navOverview = document.getElementById("navOverview");
+      const citySelect = document.getElementById("citySelect");
+      citySelect.add(new Option("選一座島…", ""));
+      ["北部", "中部", "南部", "東部"].forEach(region => {
+        const group = document.createElement("optgroup");
+        group.label = region;
+        TOUR.filter(k => cities[k].region === region).forEach(k => group.appendChild(new Option(`${cities[k].icon} ${cities[k].title}`, k)));
+        citySelect.appendChild(group);
+      });
 
       function setShadowSize(size) {
         Object.assign(sun.shadow.camera, { left: -size, right: size, top: size, bottom: -size, far: size * 6 });
@@ -2106,9 +2219,13 @@
         controls.maxDistance = 2000;
 
         document.body.classList.toggle("overview", key === "overview");
-        navButtons.forEach(b => b.classList.toggle("active", b.dataset.key === key));
+        navOverview.classList.toggle("active", key === "overview");
+        citySelect.classList.toggle("active", key !== "overview");
+        citySelect.value = key === "overview" ? "" : key;
+        Object.entries(labelsByCity).forEach(([k, labels]) => labels.forEach(l => { l.visible = k === key; }));
+        roads.forEach(r => { r.label.visible = r.aKey === key || r.bKey === key; });
         if (key === "overview") {
-          cityLine.textContent = "三座島、三個酒肉檳友，一條縱貫線";
+          cityLine.textContent = "19 座縣市島、三個酒肉檳友，一條環島公路";
           log("鏡頭拉高，看見整個 DRUNK 酒肉檳友島。");
         } else {
           const city = cities[key];
@@ -2116,7 +2233,15 @@
           log(`鏡頭跟著粉紅鯨魚，飛往${city.title}！`);
         }
       }
-      navButtons.forEach(b => b.addEventListener("click", () => focusOn(b.dataset.key)));
+      navOverview.addEventListener("click", () => focusOn("overview"));
+      citySelect.addEventListener("change", () => { if (citySelect.value) focusOn(citySelect.value); });
+      // 上一站／下一站：照環島的順序一座一座看；在全景時從你的角色的家開始
+      const stepCity = step => {
+        const i = TOUR.indexOf(focusKey);
+        focusOn(i < 0 ? window.ISLAND.players[playerKey].home : TOUR[(i + step + TOUR.length) % TOUR.length]);
+      };
+      document.getElementById("prevCity").addEventListener("click", () => stepCity(-1));
+      document.getElementById("nextCity").addEventListener("click", () => stepCity(1));
 
       function updateTravel(dt) {
         if (travel.t >= 1) return;
@@ -2161,7 +2286,7 @@
           return;
         }
         if (target && target.userData.clickable === "highway") {
-          log(`${name} 騎著機車上了台 1 線，從台北一路南下，經過彰化，直奔高雄！`);
+          log(`${name} 騎著機車上了環島公路，準備環島一圈！`);
           commandWalk(nearestWalkNode(hit.point, "highway"));
           return;
         }
@@ -2170,7 +2295,7 @@
           return;
         }
         if (!cityKey) return;
-        // 全景或點到別座島：鏡頭飛過去，你的角色也沿著縱貫線走過去
+        // 全景或點到別座島：鏡頭飛過去，你的角色也沿著公路走過去
         if (cityKey !== focusKey) {
           focusOn(cityKey);
           commandWalk(nearestWalkNode(hit.point, cityKey));
@@ -2308,6 +2433,7 @@
         { key: "pier2", city: "kaohsiung", name: "駁二藝術特區", icon: "🎨" },
         { key: "lighthouse", city: "kaohsiung", name: "旗津燈塔", icon: "🚨" },
       ];
+      Object.values(cities).forEach(c => (c.landmarks || []).forEach(lm => STAMPS.push({ ...lm, city: c.key })));
       const QUESTS = {
         rats: { title: "台北抓老鼠", hint: "天龍城的巷子裡，好像有什麼東西竄來竄去…", goal: "30 秒內抓到 5 隻老鼠（點老鼠就會開始計時）" },
         feed: { title: "彰化餵肉圓", hint: "彰化的肉圓聞起來好香，好像可以外帶…", goal: "點肉圓拿一顆，再點檳友餵他；三位都要餵到" },
@@ -2322,7 +2448,7 @@
         const box = new THREE.Box3().setFromObject(obj);
         const size = box.getSize(new THREE.Vector3());
         st.center = box.getCenter(new THREE.Vector3());
-        st.reach = Math.max(size.x, size.z) / 2 + 3;
+        st.reach = st.reach ?? Math.max(size.x, size.z) / 2 + 3;
       });
 
       const PASSPORT_KEY = "drunkPassport";
@@ -2388,7 +2514,7 @@
       }
 
       // 護照面板（在角色卡的「護照・任務」分頁裡）
-      const CITY_NAMES = { taipei: "🏙️ 台北天龍城", changhua: "🥟 彰化肉圓城", kaohsiung: "⚓ 高雄港城" };
+      const CITY_NAMES = Object.fromEntries(TOUR.map(k => [k, `${cities[k].icon} ${cities[k].title}`]));
       function renderPassport() {
         const grid = document.getElementById("stampGrid");
         grid.replaceChildren();
@@ -2582,7 +2708,7 @@
         updateHighway(dt);
         updateClouds(dt, t);
 
-        // 全景時不自動旋轉，三座島的位置才看得清楚
+        // 全景時不自動旋轉，每座島的位置才看得清楚
         controls.autoRotate = playing && focusKey !== "overview" && travel.t >= 1;
         controls.update();
         renderer.render(scene, camera);

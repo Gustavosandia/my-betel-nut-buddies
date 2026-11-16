@@ -10,8 +10,6 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   const BAY = { x: -17, z: 0, r: 9 };
   const ISLAND_R = 20;
   const GROUND_TOP = 0.7;
-  // 縱貫線從北邊進城的位置（island.html 的公路會接到這裡）
-  const HIGHWAY_X = 6;
   const inBay = (x, z, pad = 0) => Math.hypot(x - BAY.x, z - BAY.z) < BAY.r + pad;
   const onLand = (x, z, pad = 0) => insideHex(x, z, ISLAND_R - 2.5 - pad) && !inBay(x, z, 1.5 + pad);
 
@@ -313,7 +311,7 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   island.add(riverLabel);
   addLabel("愛河", riverLabel, 1.2);
 
-  // ---------- 駁二旁邊的小廣場（步道從這裡接上縱貫線） ----------
+  // ---------- 駁二旁邊的小廣場 ----------
   const squareSpot = new THREE.Vector3(1.6, GROUND_TOP + 0.06, -11.4);
   const square = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.12, 32), mat(0xe9dcc4, { flatShading: false }));
   square.position.set(squareSpot.x, GROUND_TOP, squareSpot.z);
@@ -325,7 +323,6 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   const wn = (x, y, z) => { walk.nodes.push(new THREE.Vector3(x, y, z)); return walk.nodes.length - 1; };
   const we = (a, b) => walk.edges.push([a, b]);
   const nearestOf = (list, i) => list.reduce((best, j) => (walk.nodes[j].distanceTo(walk.nodes[i]) < walk.nodes[best].distanceTo(walk.nodes[i]) ? j : best), list[0]);
-  const gateNode = wn(HIGHWAY_X, 0.78, -12);
   const squareNode = wn(squareSpot.x, squareSpot.y, squareSpot.z);
   const pier2Nodes = [wn(-2.8, 0.72, -10.3), wn(-6.6, 0.72, -10.3), wn(-10.2, 0.72, -10.3)];
   const bankNodes = [];
@@ -340,7 +337,6 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   const yardTop = wn(-0.2, 0.72, -3.6);
   const yard = wn(-0.2, 0.72, 2.5);
   const wheelFront = wn(3, 0.72, 5.4);
-  we(gateNode, squareNode);
   we(squareNode, pier2Nodes[0]);
   we(pier2Nodes[0], pier2Nodes[1]);
   we(pier2Nodes[1], pier2Nodes[2]);
@@ -370,7 +366,18 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
   walk.ferry = [[dock, qijinDock]];
   walk.tags = {};
   [qijinDock, qijinMid, sunsetBeach, qijinNorth, lighthouseFoot].forEach(i => { walk.tags[i] = "qijin"; });
-  walk.gate = gateNode;
+  // 環島公路的出入口：朝著隔壁島的方向，開在島的邊緣，接到最近的步道
+  // （不接駁二前那一排，直線會穿過倉庫；也不接旗津）
+  walk.ports = {};
+  const portSpots = [];
+  const linkable = [squareNode, ...bankNodes, yardTop, yard, wheelFront, southYard, southWest];
+  (ctx.ports || []).forEach(port => {
+    const r = hexRadius(Math.atan2(port.dir.z, port.dir.x), ISLAND_R) - 2.4;
+    const idx = wn(port.dir.x * r, 0.78, port.dir.z * r);
+    we(idx, nearestOf(linkable, idx));
+    walk.ports[port.key] = idx;
+    portSpots.push(walk.nodes[idx]);
+  });
   // 步道兩側 1.2 以內不蓋大樓
   const segDist = (x, z, a, b) => {
     const ab = new THREE.Vector2(b.x - a.x, b.z - a.z);
@@ -387,7 +394,6 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
     Math.hypot(x - WHEEL.x, z - WHEEL.z) < 4.6 ||                     // 摩天輪
     (x > -12.4 && x < -0.8 && z > -14 && z < -10.2) ||                // 駁二
     Math.hypot(x - squareSpot.x, z - squareSpot.z) < 2.6 ||               // 小廣場
-    (x > HIGHWAY_X - 2 && x < HIGHWAY_X + 2 && z < -11.5) ||           // 縱貫線進城的路
     nearRiver(x, z, 1.7) ||
     nearWalk(x, z, 1.2);
   const lots = [];
@@ -426,7 +432,7 @@ window.HeartCities.kaohsiung = function buildKaohsiung(ctx) {
     const x = Math.cos(a) * r;
     const z = Math.sin(a) * r;
     if (inBay(x, z, 2.2)) continue;
-    if (Math.abs(x - HIGHWAY_X) < 1.8 && z < -11) continue;
+    if (portSpots.some(p => Math.hypot(x - p.x, z - p.z) < 2.4)) continue;
     const palm = new THREE.Group();
     palm.position.set(x, GROUND_TOP, z);
     const lean = new THREE.Vector3((rand() - 0.5) * 0.6, 2.2, (rand() - 0.5) * 0.6);

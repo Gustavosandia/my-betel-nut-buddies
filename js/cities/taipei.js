@@ -2,7 +2,7 @@
 // 這個檔案用一般 <script> 載入（不是 module），直接雙擊 html 也能執行；THREE 由 island.html 傳進來
 window.HeartCities = window.HeartCities || {};
 window.HeartCities.taipei = function buildTaipei(ctx) {
-  const { THREE, mat, addLabel, rand, cityMaterial, insideHex, hexPrism, hexFoam } = ctx;
+  const { THREE, mat, addLabel, rand, cityMaterial, insideHex, hexRadius, hexPrism, hexFoam } = ctx;
   const island = new THREE.Group();
 
   // ---------- 島體與街道 ----------
@@ -737,19 +737,23 @@ window.HeartCities.taipei = function buildTaipei(ctx) {
       if (walkable(mid.x, mid.z)) walk.edges.push([a, b]);
     });
   });
-  // 縱貫線在南邊進城的地方
-  walk.gate = walk.nodes.length;
-  walk.nodes.push(new THREE.Vector3(2, WALK_Y, 15.2));
-  let nearestStreet = 0;
-  walk.nodes.forEach((p, i) => {
-    if (i < walk.gate && p.distanceTo(walk.nodes[walk.gate]) < walk.nodes[nearestStreet].distanceTo(walk.nodes[walk.gate])) nearestStreet = i;
+  // 環島公路的出入口：朝著隔壁島的方向，開在柏油路面的邊緣，接到最近的路口
+  const streetCount = walk.nodes.length;
+  walk.ports = {};
+  (ctx.ports || []).forEach(port => {
+    const r = hexRadius(Math.atan2(port.dir.z, port.dir.x), ASPHALT_R) - 0.8;
+    const p = new THREE.Vector3(port.dir.x * r, WALK_Y, port.dir.z * r);
+    let nearest = 0;
+    for (let i = 1; i < streetCount; i++) if (walk.nodes[i].distanceTo(p) < walk.nodes[nearest].distanceTo(p)) nearest = i;
+    walk.ports[port.key] = walk.nodes.length;
+    walk.nodes.push(p);
+    walk.edges.push([walk.ports[port.key], nearest]);
   });
-  walk.edges.push([walk.gate, nearestStreet]);
 
-  // ---------- 台北的小老鼠：只在台北街道上亂竄（不走縱貫線出入口，所以不會離開台北） ----------
+  // ---------- 台北的小老鼠：只在台北街道上亂竄（不走公路出入口，所以不會離開台北） ----------
   const streetNext = walk.nodes.map(() => []);
   walk.edges.forEach(([a, b]) => {
-    if (a === walk.gate || b === walk.gate) return;
+    if (a >= streetCount || b >= streetCount) return;
     streetNext[a].push(b);
     streetNext[b].push(a);
   });

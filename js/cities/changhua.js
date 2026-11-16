@@ -2,7 +2,7 @@
 // 這個檔案用一般 <script> 載入（不是 module），直接雙擊 html 也能執行；THREE 由 island.html 傳進來
 window.HeartCities = window.HeartCities || {};
 window.HeartCities.changhua = function buildChanghua(ctx) {
-  const { THREE, mat, beam, addLabel, rand, roles, roleIndex, hexPrism, hexFoam } = ctx;
+  const { THREE, mat, beam, addLabel, rand, roles, roleIndex, hexRadius, hexPrism, hexFoam } = ctx;
 
   // ---------- 島體：直接坐在海裡 ----------
   const island = new THREE.Group();
@@ -569,7 +569,7 @@ window.HeartCities.changhua = function buildChanghua(ctx) {
   for (let i = 0; i < ridgeCount; i++) {
     if (walk.nodes[i].distanceTo(walk.nodes[roadEnd]) < walk.nodes[nearestRidge].distanceTo(walk.nodes[roadEnd])) nearestRidge = i;
   }
-  // 西螺大橋引道和縱貫線交會的路口，就是彰化接上縱貫線的地方
+  // 西螺大橋引道上的路口
   const crossing = walkNode(14.4, 0.82, laneZ);
   const bridgeA = walkNode(startX, deckY + 0.12, laneZ);
   const bridgeB = walkNode(endX - 0.4, deckY + 0.12, laneZ);
@@ -577,7 +577,24 @@ window.HeartCities.changhua = function buildChanghua(ctx) {
   walkEdge(roadEnd, crossing);
   walkEdge(crossing, bridgeA);
   walkEdge(bridgeA, bridgeB);
-  walk.gate = crossing;
+  // 環島公路的出入口：朝著隔壁島的方向，開在島的邊緣，鋪一小段柏油路接到最近的田埂
+  walk.ports = {};
+  const existing = walk.nodes.length;
+  (ctx.ports || []).forEach(port => {
+    const r = hexRadius(Math.atan2(port.dir.z, port.dir.x), 19) - 1.6;
+    const p = new THREE.Vector3(port.dir.x * r, 0.82, port.dir.z * r);
+    let nearest = 0;
+    for (let i = 1; i < existing; i++) if (walk.nodes[i].distanceTo(p) < walk.nodes[nearest].distanceTo(p)) nearest = i;
+    const q = walk.nodes[nearest];
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, p.distanceTo(q) + 0.6), mat(0x55585e));
+    strip.position.set((p.x + q.x) / 2, 0.74, (p.z + q.z) / 2);
+    strip.rotation.y = Math.atan2(q.x - p.x, q.z - p.z);
+    strip.receiveShadow = true;
+    island.add(strip);
+    walk.ports[port.key] = walk.nodes.length;
+    walk.nodes.push(p);
+    walk.edges.push([walk.ports[port.key], nearest]);
+  });
 
   return {
     key: "changhua",
